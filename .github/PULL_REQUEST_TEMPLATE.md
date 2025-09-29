@@ -1,10 +1,10 @@
 
-# Pull Request
+## Pull Request Description
 
-## 📋 Description
-<!-- Provide a clear and concise description of the changes -->
+### Summary
+<!-- Provide a brief description of the changes in this PR -->
 
-## 🔄 Type of Change
+### Type of Change
 <!-- Mark the relevant option with an "x" -->
 - [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
 - [ ] ✨ New feature (non-breaking change which adds functionality)
@@ -12,101 +12,116 @@
 - [ ] 📚 Documentation update
 - [ ] 🔧 Configuration change
 - [ ] 🚀 Performance improvement
-- [ ] 🧹 Code cleanup/refactoring
-- [ ] 🔒 Security enhancement
+- [ ] ♻️ Code refactoring
+- [ ] 🧪 Test addition or modification
+- [ ] 🔒 Security improvement
 - [ ] 🏗️ Infrastructure change
 
-## 🎯 Related Issues
+### Related Issues
 <!-- Link to related issues using "Fixes #123" or "Closes #123" -->
 - Fixes #
 - Related to #
 
-## 🧪 Testing
-<!-- Describe the tests you ran and how to reproduce them -->
-- [ ] All existing tests pass
-- [ ] New tests added for new functionality
-- [ ] Manual testing completed
-- [ ] Integration tests pass
-- [ ] Security scan passes
+### Changes Made
+<!-- Describe the changes made in detail -->
+- 
+- 
+- 
 
-### Test Evidence
-<!-- Provide screenshots, logs, or other evidence of testing -->
+### Testing
+<!-- Describe the testing performed -->
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated
+- [ ] End-to-end tests added/updated
+- [ ] Manual testing performed
+- [ ] Performance testing performed
+- [ ] Security testing performed
 
-## 📝 Checklist
-<!-- Mark completed items with an "x" -->
+### Testing Details
+<!-- Provide details about testing performed -->
 
-### Code Quality
-- [ ] Code follows project style guidelines
-- [ ] Self-review of code completed
-- [ ] Code is properly commented
-- [ ] No debugging code left in place
-- [ ] Error handling is appropriate
+### Security Considerations
+<!-- Describe any security implications -->
+- [ ] No security implications
+- [ ] Security review required
+- [ ] Secrets/credentials handled securely
+- [ ] Input validation implemented
+- [ ] Authorization checks implemented
+- [ ] Audit logging implemented
+
+### Performance Impact
+<!-- Describe any performance implications -->
+- [ ] No performance impact
+- [ ] Performance improvement
+- [ ] Potential performance degradation (explain below)
+- [ ] Performance testing required
+
+### Breaking Changes
+<!-- If this is a breaking change, describe the impact and migration path -->
+
+### Deployment Notes
+<!-- Any special deployment considerations -->
+- [ ] Database migrations required
+- [ ] Configuration changes required
+- [ ] Environment variables added/changed
+- [ ] Infrastructure changes required
+- [ ] Third-party service changes required
 
 ### Documentation
-- [ ] Documentation updated (if applicable)
-- [ ] DECISIONS.log updated (if architectural change)
-- [ ] README updated (if user-facing change)
-- [ ] Runbooks updated (if operational change)
+<!-- Documentation changes -->
+- [ ] README updated
+- [ ] API documentation updated
+- [ ] User documentation updated
+- [ ] Developer documentation updated
+- [ ] Changelog updated
 
-### Security & Compliance
-- [ ] No sensitive information exposed
-- [ ] Security implications considered
-- [ ] Compliance requirements met
-- [ ] Access controls reviewed
+### Checklist
+<!-- Ensure all items are completed before requesting review -->
+- [ ] Code follows the project's coding standards
+- [ ] Self-review of code completed
+- [ ] Code is properly commented
+- [ ] Tests pass locally
+- [ ] Lint checks pass
+- [ ] Security scan passes
+- [ ] No merge conflicts
+- [ ] Branch is up to date with target branch
+- [ ] Commit messages follow conventional commits format
+- [ ] PR title follows conventional commits format
 
-### Operations
-- [ ] Monitoring/alerting considerations addressed
-- [ ] Rollback plan documented (if needed)
-- [ ] Performance impact assessed
-- [ ] Resource requirements documented
+### Screenshots/Videos
+<!-- If applicable, add screenshots or videos to help explain your changes -->
 
-## 🔍 Review Focus Areas
-<!-- Highlight specific areas where you want reviewer attention -->
-- [ ] Architecture/design decisions
-- [ ] Security implications
-- [ ] Performance considerations
-- [ ] Error handling
-- [ ] Documentation completeness
-- [ ] Test coverage
+### Additional Context
+<!-- Add any other context about the pull request here -->
 
-## 📊 Impact Assessment
-<!-- Describe the impact of these changes -->
-
-### Systems Affected
-- [ ] Agent orchestration
-- [ ] Monitoring/alerting
-- [ ] Security systems
-- [ ] Documentation
-- [ ] CI/CD pipeline
-- [ ] Infrastructure
-
-### Risk Level
-- [ ] 🟢 Low risk (minor changes, well-tested)
-- [ ] 🟡 Medium risk (moderate changes, some complexity)
-- [ ] 🔴 High risk (major changes, significant impact)
-
-### Rollback Strategy
-<!-- Describe how to rollback if issues arise -->
-
-## 📸 Screenshots/Evidence
-<!-- Add screenshots, logs, or other visual evidence if applicable -->
-
-## 🚀 Deployment Notes
-<!-- Special instructions for deployment -->
-- [ ] Requires database migration
-- [ ] Requires configuration update
-- [ ] Requires service restart
-- [ ] Requires infrastructure changes
-- [ ] Can be deployed independently
-
-## 👥 Reviewers
-<!-- Tag specific reviewers if needed -->
-@mention-reviewers
+### Reviewer Notes
+<!-- Any specific areas you'd like reviewers to focus on -->
 
 ---
 
-**By submitting this PR, I confirm that:**
-- [ ] I have read and followed the contributing guidelines
-- [ ] This change has been tested thoroughly
-- [ ] Documentation has been updated appropriately
-- [ ] I understand the impact of this change
+### For Reviewers
+
+#### Review Checklist
+- [ ] Code quality and maintainability
+- [ ] Security implications reviewed
+- [ ] Performance impact assessed
+- [ ] Test coverage adequate
+- [ ] Documentation complete and accurate
+- [ ] Breaking changes properly communicated
+- [ ] Deployment considerations addressed
+
+#### Security Review
+- [ ] Input validation implemented
+- [ ] Authentication/authorization proper
+- [ ] Sensitive data handling secure
+- [ ] No hardcoded secrets
+- [ ] SQL injection prevention
+- [ ] XSS prevention
+- [ ] CSRF protection
+
+#### Performance Review
+- [ ] No obvious performance bottlenecks
+- [ ] Database queries optimized
+- [ ] Caching strategy appropriate
+- [ ] Resource usage reasonable
+- [ ] Scalability considerations addressed
