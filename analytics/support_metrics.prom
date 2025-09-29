@@ -1,0 +1,9 @@
+groups:
+- name: support_recording
+  rules:
+  - record: ns:tickets_open
+    expr: sum(support_ticket_open_total) # source adapter TBD
+  - record: ns:sla_breach_risk
+    expr: sum_over_time(support_sla_risk[15m])
+  - record: ns:backlog_age_p95_hours
+    expr: histogram_quantile(0.95, sum(rate(support_backlog_age_bucket[1h])) by (le))
