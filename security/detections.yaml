@@ -1,0 +1,62 @@
+version: v1
+detections:
+  - id: SEC-001
+    name: Suspicious Admin Role Change
+    where: event.category=="admin_change" and event.action=="role_update" and event.outcome=="success"
+    risk: high
+    response: soc-incident.md#privilege-escalation
+    refs: [Ch23, Ch31]
+  - id: SEC-002
+    name: Multiple Failed Logins (Burst)
+    where: event.category=="auth" and event.action=="login" and event.outcome=="failure" and count_window_5m>=5
+    risk: medium
+    response: soc-incident.md#auth-bruteforce
+    refs: [Ch23, Ch31]
+  - id: SEC-003
+    name: Cross-Tenant Access Attempt
+    where: event.category=="access" and labels.cross_tenant==true
+    risk: critical
+    response: soc-incident.md#cross-tenant
+    refs: [Ch23, Ch31]
+  - id: SEC-004
+    name: Prompt Injection Detected
+    where: rule.category=="prompt_injection" and event.severity>=5
+    risk: high
+    response: prompt-firewall-hotfix.md
+    refs: [Ch26, Ch17]
+  - id: SEC-005
+    name: Export Hash Mismatch
+    where: event.category=="export" and event.action=="verify" and event.outcome=="failure"
+    risk: high
+    response: export-verify.md
+    refs: [Ch25, Ch16, Ch31]
+  - id: SEC-006
+    name: Residency Violation
+    where: event.category=="policy" and event.action=="residency_violation"
+    risk: critical
+    response: residency-breach.md
+    refs: [Ch30]
+  - id: SEC-007
+    name: Audit Chain Break
+    where: event.category=="audit_integrity" and event.action=="chain_break"
+    risk: critical
+    response: forensics.md
+    refs: [Ch31]
+  - id: SEC-008
+    name: Billing Spend Spike Anomaly
+    where: meter_anomaly==true and labels.tenant_headroom<0.2
+    risk: medium
+    response: cost-guardrails.md
+    refs: [Ch24, Ch12]
+  - id: SEC-009
+    name: DR Privilege Elevation During Restore
+    where: event.category=="dr" and event.action=="restore" and labels.temp_privilege==true
+    risk: high
+    response: game-day.md
+    refs: [Ch15]
+  - id: SEC-010
+    name: JWT Claim Missing/Invalid
+    where: event.category=="authz" and event.action=="jwt_invalid"
+    risk: medium
+    response: role-change.md
+    refs: [Ch23]

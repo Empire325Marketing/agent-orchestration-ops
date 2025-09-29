@@ -1,0 +1,9 @@
+groups:
+- name: docs_metrics
+  rules:
+  - record: docs:pages_total
+    expr: vector( count by() (0) )  # placeholder for adapter
+  - record: docs:pages_stale
+    expr: vector(0)                 # update via adapter
+  - record: docs:stale_ratio
+    expr: docs:pages_stale / clamp_min(docs:pages_total, 1)

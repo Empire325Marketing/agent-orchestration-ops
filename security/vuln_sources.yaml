@@ -1,0 +1,25 @@
+version: v1
+sources:
+  sbom_scanner:
+    description: "CI Security pipeline SBOM + vuln scan"
+    inputs: ["cicd/supply_chain.md", "cicd/pipelines.md"]
+    artifacts: ["sbom.json", "vuln_report.json", "attestations/*.intoto.jsonl"]
+  image_scanner:
+    description: "Container image/package scanner results (OS libs, CVEs)"
+    artifacts: ["image_vulns.json"]
+  runtime_config:
+    description: "Findings from config drift, secret exposure checks"
+    artifacts: ["config_findings.json"]
+  third_party:
+    description: "Upstream advisories & CVE bulletins"
+    artifacts: ["vendor_advisories/*.md"]
+normalization:
+  cve_id: "CVE-YYYY-NNNN"
+  cvss: "0.0..10.0"
+  severity: ["low","medium","high","critical"]
+  affected:
+    component: "name@version"
+    location: "image:// or pkg:// path"
+notes:
+  - "Link every finding to build/run artifact digest for provenance (Ch.10)."
+  - "Record first_seen and last_seen; track status lifecycle."

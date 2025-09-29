@@ -1,0 +1,52 @@
+# Experiments catalog (A/B, Shadow, Progressive Rollout)
+experiments:
+  - id: exp-model-router-v1
+    owner: platform-ops
+    type: ab
+    route: /chat
+    variants:
+      - name: control
+        flags_on: []
+      - name: treatment
+        flags_on: ["feature.model_routing.v1"]
+    allocation:
+      control: 0.5
+      treatment: 0.5
+    metrics:
+      win_rate:   {threshold: ">=0.90"}
+      p95_ms:     {regression: "<=+20%"}
+      error_rate: {regression: "<=1.25x"}
+      safety_ok:  {must_equal: true}
+      cost_headroom: {threshold: ">=20%"}
+    guardrails:
+      block_on:
+        - "safety_ok=false"
+        - "p95_ms>+20%"
+        - "error_rate>1.25x"
+        - "cost_headroom<20%"
+    promotion_rule: "7d stable, all guardrails green"
+    rollback_rule: "any guardrail red for 30m"
+
+  - id: exp-shadow-summarizer
+    owner: ml
+    type: shadow
+    route: /summarize
+    shadow_percent: 10
+    privacy: "PII redaction applied"
+    gates:
+      trace_coverage: ">=0.95 (1h)"
+      safety_ok: true
+
+  - id: rollout-weather-tool
+    owner: api-team
+    type: rollout
+    route: /tools/weather
+    steps:
+      - {traffic: "10%", hold: "1h"}
+      - {traffic: "50%", hold: "2h"}
+      - {traffic: "100%", hold: "24h"}
+    rollback_on:
+      - "error_rate>1.5x baseline (30m)"
+      - "p95_ms>+20% (30m)"
+      - "safety_ok=false"
+      - "cost_headroom<20%"

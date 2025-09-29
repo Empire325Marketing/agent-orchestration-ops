@@ -1,0 +1,35 @@
+# SIEM Field Mapping (documentation)
+version: v1
+sources:
+  audit_log:    # from Ch.31
+    ts: "@timestamp"
+    tenant_id: "labels.tenant"
+    org_id: "labels.org"
+    user_id: "actor.id"
+    family: "event.category"
+    action: "event.action"
+    status: "event.outcome"    # success|failure
+    trace_id: "trace.id"
+    region: "cloud.region"     # from Ch.30
+  app_gw:       # gateway/proxy (Ch.6/7)
+    ts: "@timestamp"
+    route: "url.path"
+    code: "http.response.status_code"
+    latency_ms: "event.duration_ms"
+    tenant_id: "labels.tenant"
+  prompt_firewall: # Ch.26
+    ts: "@timestamp"
+    detection: "rule.name"
+    category: "rule.category"
+    severity: "event.severity"
+    details: "message"
+  billing:      # Ch.24
+    ts: "@timestamp"
+    meter: "labels.meter"
+    qty: "labels.quantity"
+    cost: "labels.cost"
+    tenant_id: "labels.tenant"
+notes:
+  - All records must include tenant/org scoping (Ch.23).
+  - Region must be present for PII-related events (Ch.30).
+  - Trace linkage required where available (Ch.7/31).
