@@ -1,0 +1,43 @@
+
+# Global code owners - these users will be requested for review on all PRs
+* @Empire325Marketing
+
+# GitHub Actions workflows - require DevOps team approval
+/.github/workflows/ @Empire325Marketing
+/.github/actions/ @Empire325Marketing
+
+# Security-related files - require security team approval
+/SECURITY.md @Empire325Marketing
+/.github/workflows/security-monitoring.yml @Empire325Marketing
+/security/ @Empire325Marketing
+
+# Infrastructure and deployment files
+/terraform/ @Empire325Marketing
+/k8s/ @Empire325Marketing
+/docker/ @Empire325Marketing
+/Dockerfile* @Empire325Marketing
+/docker-compose*.yml @Empire325Marketing
+
+# CI/CD and operational files
+/.github/workflows/ci-comprehensive.yml @Empire325Marketing
+/.github/workflows/cd-production.yml @Empire325Marketing
+/.github/workflows/operational-excellence.yml @Empire325Marketing
+
+# Documentation - require documentation team approval
+/docs/ @Empire325Marketing
+/README.md @Empire325Marketing
+/CONTRIBUTING.md @Empire325Marketing
+/CODE_OF_CONDUCT.md @Empire325Marketing
+
+# Configuration files
+/.gitignore @Empire325Marketing
+/.gitattributes @Empire325Marketing
+/package.json @Empire325Marketing
+/requirements.txt @Empire325Marketing
+/go.mod @Empire325Marketing
+/Cargo.toml @Empire325Marketing
+
+# Environment and secrets management
+/.env.example @Empire325Marketing
+/secrets/ @Empire325Marketing
+/config/ @Empire325Marketing
