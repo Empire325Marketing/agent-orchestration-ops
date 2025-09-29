@@ -1,0 +1,5 @@
+# Learning Agenda (Day-7)
+- What improved/declined? (p95, win rate, cost/req)
+- What did users actually do? (tool call mix, retries)
+- Which experiments moved KPIs? (Ch.18)
+- Top 5 issues → actions (owner, ETA, success metric)
