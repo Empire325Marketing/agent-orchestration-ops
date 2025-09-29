@@ -1,0 +1,21 @@
+# Synchronization configuration for agent orchestration systems
+
+sync_config:
+  systems:
+    - name: "primary_orchestrator"
+      endpoint: "https://primary.example.com/api"
+      sync_interval: "30s"
+      
+    - name: "secondary_orchestrator"
+      endpoint: "https://secondary.example.com/api"
+      sync_interval: "30s"
+      
+  sync_rules:
+    - source: "primary_orchestrator"
+      target: "secondary_orchestrator"
+      data_types: ["agents", "tasks", "configurations"]
+      
+  monitoring:
+    health_check_interval: "10s"
+    alert_threshold: "5m"
+    retry_attempts: 3

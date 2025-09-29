@@ -1,0 +1,56 @@
+
+# CODEOWNERS file for agent-orchestration-ops
+# This file defines who owns and reviews different parts of the repository
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global ownership - all files require review from repository maintainers
+* @Empire325Marketing
+
+# Operational runbooks - require ops team review
+/runbooks/ @Empire325Marketing
+/runbooks/*.md @Empire325Marketing
+
+# Alert configurations - require monitoring team review
+/alerts/ @Empire325Marketing
+/alerts/*.yml @Empire325Marketing
+/alerts/*.yaml @Empire325Marketing
+/alerts/*.json @Empire325Marketing
+
+# Security configurations - require security team review
+/security/ @Empire325Marketing
+/security/*.md @Empire325Marketing
+/security/*.yml @Empire325Marketing
+/security/*.yaml @Empire325Marketing
+
+# Gates and deployment controls - require platform team review
+/gates/ @Empire325Marketing
+/gates/*.yml @Empire325Marketing
+/gates/*.yaml @Empire325Marketing
+
+# Analytics and monitoring - require data team review
+/analytics/ @Empire325Marketing
+/analytics/*.yml @Empire325Marketing
+/analytics/*.yaml @Empire325Marketing
+
+# CI/CD workflows - require DevOps team review
+/.github/ @Empire325Marketing
+/.github/workflows/ @Empire325Marketing
+/.github/workflows/*.yml @Empire325Marketing
+
+# Documentation - require technical writing review
+/docs/ @Empire325Marketing
+*.md @Empire325Marketing
+README.md @Empire325Marketing
+
+# Setup and configuration scripts - require platform team review
+complete-setup.sh @Empire325Marketing
+/sync-framework/ @Empire325Marketing
+
+# Decision logs and governance - require architecture team review
+DECISIONS.log @Empire325Marketing
+CHANGELOG.md @Empire325Marketing
+RELEASE.md @Empire325Marketing
+
+# Experimental features - require research team review
+/experiments/ @Empire325Marketing
+/canary-reports/ @Empire325Marketing

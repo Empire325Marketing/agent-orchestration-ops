@@ -1,0 +1,48 @@
+# Metric Catalog (MVP)
+version: 1
+metrics:
+  - name: win_rate
+    owner: product-analytics
+    target: ">= 0.90"
+    source: "golden tests (readiness/golden_tests.md)"
+    compute: "wins / total"
+  - name: api_p95_ms
+    owner: sre
+    target: "<= 950"
+    source: "Prometheus: p95_ms{route=~\"api.*\"}"
+  - name: llm_p95_short_ms
+    owner: sre
+    target: "<= 1500"
+    source: "Prometheus: llm_p95_ms{len=\"short\"}"
+  - name: llm_p95_long_ms
+    owner: sre
+    target: "<= 3500"
+    source: "Prometheus: llm_p95_ms{len=\"long\"}"
+  - name: error_rate
+    owner: sre
+    target: "<= 1.25x baseline"
+    source: "Prometheus: err_total / req_total"
+  - name: jailbreak_rate
+    owner: safety
+    target: "= 0"
+    source: "safety scoring pipeline"
+  - name: pii_leak_rate
+    owner: safety
+    target: "= 0"
+    source: "safety scoring pipeline"
+  - name: toxicity_rate
+    owner: safety
+    target: "<= 0.01"
+    source: "safety scoring pipeline"
+  - name: cost_per_req_usd
+    owner: platform-finops
+    target: "within plan"
+    source: "Prometheus/PG cost signals"
+  - name: tenant_headroom
+    owner: platform-finops
+    target: ">= 0.20"
+    source: "Prometheus: cost_headroom"
+  - name: trace_coverage
+    owner: sre
+    target: ">= 0.95 (1h)"
+    source: "OTel collector"
