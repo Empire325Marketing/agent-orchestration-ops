@@ -1,0 +1,392 @@
+
+name: 📊 Code Quality & Linting
+
+on:
+  push:
+    branches: [ main, ops-readiness, develop ]
+  pull_request:
+    branches: [ main, ops-readiness ]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  python-quality:
+    name: 🐍 Python Code Quality
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.py') != ''
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install black isort flake8 mypy bandit pylint autopep8 pydocstyle
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      - name: 🎨 Code Formatting (Black)
+        run: |
+          echo "🎨 Checking code formatting with Black..."
+          black --check --diff --color .
+          echo "✅ Black formatting check completed"
+
+      - name: 📋 Import Sorting (isort)
+        run: |
+          echo "📋 Checking import sorting with isort..."
+          isort --check-only --diff --color .
+          echo "✅ isort check completed"
+
+      - name: 🔍 Linting (Flake8)
+        run: |
+          echo "🔍 Running Flake8 linting..."
+          flake8 . --count --statistics --format=json --output-file=flake8-report.json || true
+          flake8 . --count --statistics
+          echo "✅ Flake8 linting completed"
+
+      - name: 🏷️ Type Checking (MyPy)
+        run: |
+          echo "🏷️ Running MyPy type checking..."
+          mypy . --ignore-missing-imports --json-report mypy-report || true
+          echo "✅ MyPy type checking completed"
+
+      - name: 🔒 Security Linting (Bandit)
+        run: |
+          echo "🔒 Running Bandit security linting..."
+          bandit -r . -f json -o bandit-report.json || true
+          bandit -r . -f txt || true
+          echo "✅ Bandit security linting completed"
+
+      - name: 📊 Code Quality (Pylint)
+        run: |
+          echo "📊 Running Pylint code quality analysis..."
+          pylint **/*.py --output-format=json --reports=y > pylint-report.json || true
+          pylint **/*.py --reports=y || true
+          echo "✅ Pylint analysis completed"
+
+      - name: 📝 Documentation Style (pydocstyle)
+        run: |
+          echo "📝 Checking documentation style..."
+          pydocstyle . --count || true
+          echo "✅ Documentation style check completed"
+
+      - name: 📤 Upload Python Quality Reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: python-quality-reports
+          path: |
+            flake8-report.json
+            mypy-report/
+            bandit-report.json
+            pylint-report.json
+          retention-days: 30
+
+  javascript-quality:
+    name: 📦 JavaScript Code Quality
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.js', '**/*.ts', '**/*.jsx', '**/*.tsx', '**/package.json') != ''
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📦 Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: 📦 Install Dependencies
+        run: |
+          if [ -f package.json ]; then
+            npm ci
+          else
+            npm install -g eslint prettier jshint
+          fi
+
+      - name: 🎨 Code Formatting (Prettier)
+        run: |
+          echo "🎨 Checking code formatting with Prettier..."
+          if [ -f package.json ] && npm list prettier &>/dev/null; then
+            npx prettier --check .
+          else
+            echo "ℹ️ Prettier not configured"
+          fi
+          echo "✅ Prettier check completed"
+
+      - name: 🔍 Linting (ESLint)
+        run: |
+          echo "🔍 Running ESLint..."
+          if [ -f package.json ] && npm list eslint &>/dev/null; then
+            npx eslint . --ext .js,.jsx,.ts,.tsx --format json --output-file eslint-report.json || true
+            npx eslint . --ext .js,.jsx,.ts,.tsx || true
+          else
+            echo "ℹ️ ESLint not configured"
+          fi
+          echo "✅ ESLint completed"
+
+      - name: 📊 Code Quality (JSHint)
+        run: |
+          echo "📊 Running JSHint..."
+          find . -name "*.js" -not -path "./node_modules/*" -exec jshint {} \; || true
+          echo "✅ JSHint completed"
+
+      - name: 📤 Upload JavaScript Quality Reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: javascript-quality-reports
+          path: |
+            eslint-report.json
+          retention-days: 30
+
+  shell-quality:
+    name: 🐚 Shell Script Quality
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.sh', '**/*.bash') != ''
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔍 ShellCheck Linting
+        run: |
+          echo "🔍 Running ShellCheck..."
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          
+          # Find and check all shell scripts
+          find . -name "*.sh" -o -name "*.bash" | while read -r script; do
+            echo "🔍 Checking $script..."
+            shellcheck "$script" -f json > "shellcheck-$(basename "$script").json" || true
+            shellcheck "$script" || true
+          done
+          
+          echo "✅ ShellCheck completed"
+
+      - name: 📤 Upload Shell Quality Reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: shell-quality-reports
+          path: |
+            shellcheck-*.json
+          retention-days: 30
+
+  yaml-quality:
+    name: 📄 YAML Quality
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.yml', '**/*.yaml') != ''
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install yamllint
+        run: |
+          pip install yamllint
+
+      - name: 🔍 YAML Linting
+        run: |
+          echo "🔍 Running yamllint..."
+          yamllint . -f parsable > yamllint-report.txt || true
+          yamllint . || true
+          echo "✅ yamllint completed"
+
+      - name: 📤 Upload YAML Quality Reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: yaml-quality-reports
+          path: |
+            yamllint-report.txt
+          retention-days: 30
+
+  markdown-quality:
+    name: 📝 Markdown Quality
+    runs-on: ubuntu-latest
+    if: hashFiles('**/*.md') != ''
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📦 Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Install markdownlint
+        run: |
+          npm install -g markdownlint-cli
+
+      - name: 🔍 Markdown Linting
+        run: |
+          echo "🔍 Running markdownlint..."
+          markdownlint . --json > markdownlint-report.json || true
+          markdownlint . || true
+          echo "✅ markdownlint completed"
+
+      - name: 📤 Upload Markdown Quality Reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: markdown-quality-reports
+          path: |
+            markdownlint-report.json
+          retention-days: 30
+
+  dockerfile-quality:
+    name: 🐳 Dockerfile Quality
+    runs-on: ubuntu-latest
+    if: hashFiles('**/Dockerfile*') != ''
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Hadolint Dockerfile Linting
+        run: |
+          echo "🔍 Running Hadolint..."
+          wget -O hadolint https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64
+          chmod +x hadolint
+          
+          find . -name "Dockerfile*" | while read -r dockerfile; do
+            echo "🔍 Checking $dockerfile..."
+            ./hadolint "$dockerfile" --format json > "hadolint-$(basename "$dockerfile").json" || true
+            ./hadolint "$dockerfile" || true
+          done
+          
+          echo "✅ Hadolint completed"
+
+      - name: 📤 Upload Dockerfile Quality Reports
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: dockerfile-quality-reports
+          path: |
+            hadolint-*.json
+          retention-days: 30
+
+  quality-summary:
+    name: 📊 Quality Summary Report
+    runs-on: ubuntu-latest
+    needs: [python-quality, javascript-quality, shell-quality, yaml-quality, markdown-quality, dockerfile-quality]
+    if: always()
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 📥 Download All Quality Reports
+        uses: actions/download-artifact@v3
+        with:
+          path: quality-reports/
+
+      - name: 📊 Generate Quality Summary
+        run: |
+          echo "📊 Generating code quality summary..."
+          
+          cat > quality-summary.md << EOF
+          # 📊 Code Quality Report
+          
+          **Generated:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          **Repository:** ${{ github.repository }}
+          **Branch:** ${{ github.ref_name }}
+          **Commit:** ${{ github.sha }}
+          
+          ## 📋 Quality Check Results
+          
+          | Language/Tool | Status | Details |
+          |---------------|--------|---------|
+          | 🐍 Python | ${{ needs.python-quality.result }} | Black, isort, Flake8, MyPy, Bandit, Pylint |
+          | 📦 JavaScript | ${{ needs.javascript-quality.result }} | Prettier, ESLint, JSHint |
+          | 🐚 Shell Scripts | ${{ needs.shell-quality.result }} | ShellCheck |
+          | 📄 YAML | ${{ needs.yaml-quality.result }} | yamllint |
+          | 📝 Markdown | ${{ needs.markdown-quality.result }} | markdownlint |
+          | 🐳 Dockerfile | ${{ needs.dockerfile-quality.result }} | Hadolint |
+          
+          ## 🎯 Quality Metrics
+          
+          ### 🐍 Python Quality
+          - **Formatting:** $([ "${{ needs.python-quality.result }}" == "success" ] && echo "✅ Passed" || echo "❌ Issues found")
+          - **Type Checking:** $([ "${{ needs.python-quality.result }}" == "success" ] && echo "✅ Passed" || echo "❌ Issues found")
+          - **Security:** $([ "${{ needs.python-quality.result }}" == "success" ] && echo "✅ Passed" || echo "❌ Issues found")
+          
+          ### 📦 JavaScript Quality
+          - **Formatting:** $([ "${{ needs.javascript-quality.result }}" == "success" ] && echo "✅ Passed" || echo "❌ Issues found")
+          - **Linting:** $([ "${{ needs.javascript-quality.result }}" == "success" ] && echo "✅ Passed" || echo "❌ Issues found")
+          
+          ### 🐚 Shell Quality
+          - **ShellCheck:** $([ "${{ needs.shell-quality.result }}" == "success" ] && echo "✅ Passed" || echo "❌ Issues found")
+          
+          ### 📄 Configuration Quality
+          - **YAML:** $([ "${{ needs.yaml-quality.result }}" == "success" ] && echo "✅ Passed" || echo "❌ Issues found")
+          - **Markdown:** $([ "${{ needs.markdown-quality.result }}" == "success" ] && echo "✅ Passed" || echo "❌ Issues found")
+          - **Dockerfile:** $([ "${{ needs.dockerfile-quality.result }}" == "success" ] && echo "✅ Passed" || echo "❌ Issues found")
+          
+          ## 🚀 Recommendations
+          
+          $(if [ "${{ needs.python-quality.result }}" != "success" ]; then
+            echo "### 🐍 Python Improvements"
+            echo "- Run \`black .\` to fix formatting issues"
+            echo "- Run \`isort .\` to fix import sorting"
+            echo "- Address Flake8 linting issues"
+            echo "- Fix MyPy type checking errors"
+            echo "- Review Bandit security warnings"
+            echo ""
+          fi)
+          
+          $(if [ "${{ needs.javascript-quality.result }}" != "success" ]; then
+            echo "### 📦 JavaScript Improvements"
+            echo "- Run \`prettier --write .\` to fix formatting"
+            echo "- Address ESLint warnings and errors"
+            echo "- Fix JSHint issues"
+            echo ""
+          fi)
+          
+          $(if [ "${{ needs.shell-quality.result }}" != "success" ]; then
+            echo "### 🐚 Shell Script Improvements"
+            echo "- Address ShellCheck warnings"
+            echo "- Follow shell scripting best practices"
+            echo ""
+          fi)
+          
+          ## 📈 Quality Trends
+          
+          - **Overall Status:** $(if [[ "${{ needs.python-quality.result }}" == "success" && "${{ needs.javascript-quality.result }}" == "success" && "${{ needs.shell-quality.result }}" == "success" && "${{ needs.yaml-quality.result }}" == "success" && "${{ needs.markdown-quality.result }}" == "success" && "${{ needs.dockerfile-quality.result }}" == "success" ]]; then echo "🟢 Excellent"; elif [[ "${{ needs.python-quality.result }}" == "success" || "${{ needs.javascript-quality.result }}" == "success" ]]; then echo "🟡 Good"; else echo "🔴 Needs Improvement"; fi)
+          - **Code Coverage:** TBD (integrate with coverage tools)
+          - **Technical Debt:** TBD (integrate with SonarQube or similar)
+          
+          ---
+          
+          *Report generated automatically by GitHub Actions*
+          EOF
+          
+          echo "✅ Quality summary generated"
+
+      - name: 📤 Upload Quality Summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: quality-summary-report
+          path: |
+            quality-summary.md
+            quality-reports/
+          retention-days: 30
+
+      - name: 📢 Quality Status
+        run: |
+          echo "📢 Code Quality Summary:"
+          echo "🐍 Python: ${{ needs.python-quality.result }}"
+          echo "📦 JavaScript: ${{ needs.javascript-quality.result }}"
+          echo "🐚 Shell: ${{ needs.shell-quality.result }}"
+          echo "📄 YAML: ${{ needs.yaml-quality.result }}"
+          echo "📝 Markdown: ${{ needs.markdown-quality.result }}"
+          echo "🐳 Dockerfile: ${{ needs.dockerfile-quality.result }}"

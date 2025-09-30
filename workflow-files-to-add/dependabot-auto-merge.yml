@@ -1,0 +1,219 @@
+
+name: 🤖 Dependabot Auto-Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  dependabot-auto-merge:
+    name: 🤖 Auto-merge Dependabot PRs
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔍 Analyze Dependabot PR
+        id: analyze
+        run: |
+          echo "🔍 Analyzing Dependabot PR..."
+          
+          # Get PR details
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          PR_BODY="${{ github.event.pull_request.body }}"
+          
+          echo "📋 PR Title: $PR_TITLE"
+          
+          # Determine update type
+          if echo "$PR_TITLE" | grep -q "patch"; then
+            UPDATE_TYPE="patch"
+            AUTO_MERGE="true"
+          elif echo "$PR_TITLE" | grep -q "minor"; then
+            UPDATE_TYPE="minor"
+            AUTO_MERGE="true"
+          elif echo "$PR_TITLE" | grep -q "major"; then
+            UPDATE_TYPE="major"
+            AUTO_MERGE="false"
+          else
+            # Try to determine from version numbers
+            if echo "$PR_TITLE" | grep -E "from [0-9]+\.[0-9]+\.[0-9]+ to [0-9]+\.[0-9]+\.[0-9]+"; then
+              OLD_VERSION=$(echo "$PR_TITLE" | grep -oE "from [0-9]+\.[0-9]+\.[0-9]+" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+              NEW_VERSION=$(echo "$PR_TITLE" | grep -oE "to [0-9]+\.[0-9]+\.[0-9]+" | grep -oE "[0-9]+\.[0-9]+\.[0-9]+")
+              
+              OLD_MAJOR=$(echo "$OLD_VERSION" | cut -d. -f1)
+              NEW_MAJOR=$(echo "$NEW_VERSION" | cut -d. -f1)
+              OLD_MINOR=$(echo "$OLD_VERSION" | cut -d. -f2)
+              NEW_MINOR=$(echo "$NEW_VERSION" | cut -d. -f2)
+              
+              if [ "$OLD_MAJOR" != "$NEW_MAJOR" ]; then
+                UPDATE_TYPE="major"
+                AUTO_MERGE="false"
+              elif [ "$OLD_MINOR" != "$NEW_MINOR" ]; then
+                UPDATE_TYPE="minor"
+                AUTO_MERGE="true"
+              else
+                UPDATE_TYPE="patch"
+                AUTO_MERGE="true"
+              fi
+            else
+              UPDATE_TYPE="unknown"
+              AUTO_MERGE="false"
+            fi
+          fi
+          
+          echo "update_type=$UPDATE_TYPE" >> $GITHUB_OUTPUT
+          echo "auto_merge=$AUTO_MERGE" >> $GITHUB_OUTPUT
+          
+          echo "📊 Update Type: $UPDATE_TYPE"
+          echo "🤖 Auto-merge: $AUTO_MERGE"
+
+      - name: 🔍 Check for Security Updates
+        id: security
+        run: |
+          echo "🔍 Checking if this is a security update..."
+          
+          PR_BODY="${{ github.event.pull_request.body }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          
+          if echo "$PR_BODY $PR_TITLE" | grep -i "security\|vulnerability\|cve\|advisory"; then
+            echo "🛡️ Security update detected"
+            echo "is_security=true" >> $GITHUB_OUTPUT
+          else
+            echo "📦 Regular dependency update"
+            echo "is_security=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: ⏳ Wait for CI Checks
+        if: steps.analyze.outputs.auto_merge == 'true'
+        run: |
+          echo "⏳ Waiting for CI checks to complete..."
+          
+          # Wait for checks to start
+          sleep 30
+          
+          # Check status for up to 10 minutes
+          for i in {1..20}; do
+            echo "🔍 Checking CI status (attempt $i/20)..."
+            
+            # Get check runs status
+            CHECK_STATUS=$(gh api repos/${{ github.repository }}/commits/${{ github.event.pull_request.head.sha }}/check-runs \
+              --jq '.check_runs | map(select(.name != "dependabot-auto-merge")) | map(.status) | unique')
+            
+            echo "📊 Check status: $CHECK_STATUS"
+            
+            # If all checks are completed
+            if ! echo "$CHECK_STATUS" | grep -q "in_progress\|queued"; then
+              echo "✅ All checks completed"
+              break
+            fi
+            
+            echo "⏳ Checks still running, waiting 30 seconds..."
+            sleep 30
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ✅ Verify CI Success
+        if: steps.analyze.outputs.auto_merge == 'true'
+        id: ci_check
+        run: |
+          echo "✅ Verifying CI check results..."
+          
+          # Get check runs conclusion
+          CHECK_CONCLUSIONS=$(gh api repos/${{ github.repository }}/commits/${{ github.event.pull_request.head.sha }}/check-runs \
+            --jq '.check_runs | map(select(.name != "dependabot-auto-merge")) | map(.conclusion) | unique')
+          
+          echo "📊 Check conclusions: $CHECK_CONCLUSIONS"
+          
+          # Check if any checks failed
+          if echo "$CHECK_CONCLUSIONS" | grep -q "failure\|cancelled\|timed_out"; then
+            echo "❌ Some CI checks failed"
+            echo "ci_passed=false" >> $GITHUB_OUTPUT
+          elif echo "$CHECK_CONCLUSIONS" | grep -q "success"; then
+            echo "✅ All CI checks passed"
+            echo "ci_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "⏳ CI checks not yet completed"
+            echo "ci_passed=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔒 Security Update Auto-Approval
+        if: steps.security.outputs.is_security == 'true' && steps.ci_check.outputs.ci_passed == 'true'
+        run: |
+          echo "🔒 Auto-approving security update..."
+          gh pr review ${{ github.event.pull_request.number }} --approve \
+            --body "🛡️ Auto-approved security update after successful CI checks"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 Regular Update Auto-Approval
+        if: steps.analyze.outputs.auto_merge == 'true' && steps.analyze.outputs.update_type != 'major' && steps.ci_check.outputs.ci_passed == 'true'
+        run: |
+          echo "📦 Auto-approving ${{ steps.analyze.outputs.update_type }} update..."
+          gh pr review ${{ github.event.pull_request.number }} --approve \
+            --body "🤖 Auto-approved ${{ steps.analyze.outputs.update_type }} update after successful CI checks"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🚀 Auto-Merge PR
+        if: (steps.analyze.outputs.auto_merge == 'true' || steps.security.outputs.is_security == 'true') && steps.ci_check.outputs.ci_passed == 'true'
+        run: |
+          echo "🚀 Auto-merging Dependabot PR..."
+          
+          # Enable auto-merge
+          gh pr merge ${{ github.event.pull_request.number }} \
+            --auto --squash \
+            --subject "🤖 ${{ github.event.pull_request.title }}" \
+            --body "Auto-merged by Dependabot workflow after successful CI checks"
+          
+          echo "✅ Auto-merge enabled for PR #${{ github.event.pull_request.number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📝 Add Comment for Manual Review
+        if: steps.analyze.outputs.auto_merge == 'false' && steps.analyze.outputs.update_type == 'major'
+        run: |
+          echo "📝 Adding comment for manual review..."
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --body "🔍 **Major Version Update Detected**
+          
+          This PR contains a major version update that requires manual review:
+          - **Update Type:** ${{ steps.analyze.outputs.update_type }}
+          - **Security Update:** ${{ steps.security.outputs.is_security }}
+          
+          Please review the changes carefully before merging:
+          1. Check for breaking changes in the changelog
+          2. Verify compatibility with existing code
+          3. Run additional tests if necessary
+          4. Consider the impact on dependent systems
+          
+          Once reviewed, you can merge this PR manually."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📊 Summary Report
+        if: always()
+        run: |
+          echo "📊 Dependabot Auto-Merge Summary:"
+          echo "🔍 Update Type: ${{ steps.analyze.outputs.update_type }}"
+          echo "🛡️ Security Update: ${{ steps.security.outputs.is_security }}"
+          echo "🤖 Auto-merge Eligible: ${{ steps.analyze.outputs.auto_merge }}"
+          echo "✅ CI Checks Passed: ${{ steps.ci_check.outputs.ci_passed }}"
+          
+          if [ "${{ steps.analyze.outputs.auto_merge }}" == "true" ] && [ "${{ steps.ci_check.outputs.ci_passed }}" == "true" ]; then
+            echo "🚀 Action: Auto-merged"
+          elif [ "${{ steps.analyze.outputs.update_type }}" == "major" ]; then
+            echo "👀 Action: Marked for manual review"
+          else
+            echo "⏳ Action: Waiting for CI or conditions not met"
+          fi
