@@ -1,0 +1,98 @@
+
+# Production environment values
+
+global:
+  environment: prod
+  logLevel: INFO
+
+redis:
+  master:
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 500m
+      limits:
+        memory: 2Gi
+        cpu: 2000m
+  replica:
+    replicaCount: 2
+    resources:
+      requests:
+        memory: 1Gi
+        cpu: 500m
+      limits:
+        memory: 2Gi
+        cpu: 2000m
+
+litellm:
+  replicaCount: 3
+  image:
+    repository: ghcr.io/berriai/litellm
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+    limits:
+      memory: 2Gi
+      cpu: 2000m
+  
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: litellm
+            topologyKey: kubernetes.io/hostname
+  
+  config:
+    redis_host: redis-master
+    redis_port: 6379
+    enable_caching: true
+    cache_responses: true
+    num_retries: 3
+    timeout: 300
+  
+  env:
+    - name: LOG_LEVEL
+      value: INFO
+    - name: ENVIRONMENT
+      value: prod
+
+vllm:
+  replicaCount: 2
+  image:
+    repository: vllm/vllm-openai
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  model:
+    name: meta-llama/Meta-Llama-3.1-8B-Instruct
+    gpuMemoryUtilization: 0.90
+    maxNumSeqs: 256
+    maxModelLen: 32768
+    enablePrefixCaching: true
+  
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+    requests:
+      memory: 16Gi
+      cpu: 4000m
+  
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
+  
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app: vllm
+            topologyKey: kubernetes.io/hostname

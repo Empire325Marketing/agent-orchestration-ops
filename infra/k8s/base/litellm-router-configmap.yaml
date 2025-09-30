@@ -1,0 +1,79 @@
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: litellm-router-config
+  namespace: primarch-routing
+data:
+  router.yaml: |
+    model_list:
+      # Builder agent - fast, creative
+      - model_name: builder-lite
+        litellm_params:
+          model: openai/gpt-4o-mini
+          api_key: os.environ/OPENAI_API_KEY
+        model_info:
+          mode: chat
+          supports_function_calling: true
+          max_tokens: 16384
+      
+      # Coder agent - balanced coding capability
+      - model_name: coder-standard
+        litellm_params:
+          model: anthropic/claude-3-5-sonnet-20241022
+          api_key: os.environ/ANTHROPIC_API_KEY
+        model_info:
+          mode: chat
+          supports_function_calling: true
+          max_tokens: 8192
+      
+      # Tester agent - analytical
+      - model_name: tester-standard
+        litellm_params:
+          model: openai/gpt-4o
+          api_key: os.environ/OPENAI_API_KEY
+        model_info:
+          mode: chat
+          supports_function_calling: true
+          max_tokens: 8192
+      
+      # Deployer agent - reliable, cost-effective
+      - model_name: deployer-lite
+        litellm_params:
+          model: openai/gpt-4o-mini
+          api_key: os.environ/OPENAI_API_KEY
+        model_info:
+          mode: chat
+          supports_function_calling: true
+          max_tokens: 8192
+      
+      # Local vLLM fallback
+      - model_name: local-llama
+        litellm_params:
+          model: openai/meta-llama/Meta-Llama-3.1-8B-Instruct
+          api_base: http://vllm:8000/v1
+          api_key: dummy
+        model_info:
+          mode: chat
+          supports_function_calling: false
+          max_tokens: 32768
+    
+    router_settings:
+      redis_host: redis
+      redis_port: 6379
+      enable_pre_call_checks: true
+      enable_caching: true
+      cache_responses: true
+      num_retries: 2
+      timeout: 300
+      fallbacks:
+        - builder-lite: [local-llama]
+        - coder-standard: [local-llama]
+        - tester-standard: [local-llama]
+        - deployer-lite: [local-llama]
+    
+    litellm_settings:
+      success_callback: ["prometheus"]
+      failure_callback: ["prometheus"]
+      drop_params: true
+      set_verbose: false
