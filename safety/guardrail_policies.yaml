@@ -1,0 +1,514 @@
+# Guardrails Policy Configuration - Primarch Second Layer Security
+# Version: 2.0
+# Last Updated: 2025-09-30
+
+# Global Configuration
+global:
+  enabled: true
+  logging_level: INFO
+  audit_enabled: true
+  metrics_enabled: true
+  
+  # Performance targets
+  performance_targets:
+    fp_budget: 0.05   # false positive rate cap (5%)
+    pii_fn_budget: 0.01  # PII false negative rate cap (1%)
+    latency_p95_ms: 200  # 95th percentile latency target
+    
+  # Default actions for policy violations
+  default_actions:
+    on_violation: [block, audit, alert]
+    on_pii_detection: [redact, audit, monitor]
+    on_high_risk: [block, escalate_p1, human_review]
+
+# Route-specific Policies
+routes:
+  # Agent Execution Endpoint - Highest Security
+  /v1/agents/execute:
+    description: "Primary agent execution with full security controls"
+    enabled: true
+    priority: critical
+    
+    # NeMo Guardrails Configuration
+    nemo_guardrails:
+      enabled: true
+      
+      # Input Security Rails
+      input_rails:
+        jailbreak_detection:
+          enabled: true
+          model: "jailbreak_classifier_v2"
+          confidence_threshold: 0.8
+          action: block
+          message: "Security violation detected - request blocked"
+          
+        prompt_injection:
+          enabled: true
+          action: block
+          patterns:
+            - "ignore previous instructions"
+            - "system:\\s*you are now"
+            - "forget everything above"
+            - "\\/\\*.*\\*\\/.*new instructions"
+            - "<script>.*</script>"
+            - "\\[INST\\].*override.*\\[\\/INST\\]"
+            - "human:\\s*actually"
+          
+        topic_control:
+          enabled: true
+          action: block
+          allowed_topics:
+            - software_development
+            - data_analysis
+            - technical_support
+            - general_knowledge
+            - coding_assistance
+          blocked_topics:
+            - harmful_content
+            - illegal_activities
+            - personal_attacks
+            - medical_advice
+            - financial_advice
+            - private_information_requests
+            
+        content_moderation:
+          enabled: true
+          toxicity_threshold: 0.7
+          bias_threshold: 0.8
+          action: block
+          
+      # Dialog Control Rails  
+      dialog_rails:
+        enabled: true
+        max_turns: 50
+        max_conversation_length: 10000
+        escalation_triggers:
+          - repeated_violations
+          - aggressive_language
+          - system_prompt_requests
+          - sensitive_topic_persistence
+        human_handoff:
+          enabled: true
+          conditions:
+            - high_risk_detected
+            - user_complaint
+            - repeated_policy_violations
+            
+      # Output Security Rails
+      output_rails:
+        enabled: true
+        hallucination_filter:
+          enabled: true
+          confidence_threshold: 0.7
+          action: flag
+          
+        bias_detection:
+          enabled: true
+          threshold: 0.8
+          action: warn
+          
+        toxicity_filter:
+          enabled: true
+          threshold: 0.7
+          action: block
+          
+        fact_checking:
+          enabled: false  # Optional for agent execution
+          threshold: 0.6
+          
+    # Presidio PII Detection Configuration
+    presidio:
+      enabled: true
+      
+      # Detection Settings
+      pii_detection:
+        mode: high_recall
+        confidence_threshold: 0.8
+        enable_verification: true
+        
+      # Entity Types to Detect
+      entities:
+        - PERSON
+        - EMAIL_ADDRESS  
+        - PHONE_NUMBER
+        - SSN
+        - CREDIT_CARD
+        - IBAN_CODE
+        - US_PASSPORT
+        - US_DRIVER_LICENSE
+        - IP_ADDRESS
+        - CRYPTO
+        - MEDICAL_LICENSE
+        - URL
+        - DATE_TIME  # For sensitive temporal data
+        - LOCATION    # For geographic privacy
+        
+      # Redaction Strategy
+      redaction_strategy: pseudonymize
+      pseudonymization:
+        enabled: true
+        reversible: true  # For authorized access
+        key_rotation: weekly
+        
+      # Risk-based Actions
+      risk_levels:
+        low:
+          action: redact
+          entities: [EMAIL_ADDRESS, PHONE_NUMBER, URL]
+          
+        medium: 
+          action: redact
+          entities: [PERSON, DATE_TIME, LOCATION]
+          alert: true
+          
+        high:
+          action: block
+          entities: [SSN, CREDIT_CARD, US_PASSPORT, MEDICAL_LICENSE]
+          escalate: true
+          
+        critical:
+          action: block
+          entities: [CRYPTO, IBAN_CODE]
+          immediate_alert: true
+          human_review: true
+
+  # RAG Query Endpoint - Medium Security  
+  /v1/rag/query:
+    description: "RAG query processing with moderate security controls"
+    enabled: true
+    priority: high
+    
+    nemo_guardrails:
+      enabled: true
+      
+      input_rails:
+        jailbreak_detection:
+          enabled: true
+          confidence_threshold: 0.75  # Slightly lower for RAG
+          action: block
+          
+        prompt_injection:
+          enabled: true
+          action: warn  # More permissive for queries
+          
+        topic_control:
+          enabled: true
+          action: warn
+          allowed_topics:
+            - research
+            - information_retrieval  
+            - data_analysis
+            - technical_queries
+            - educational_content
+            
+      # RAG-specific Rails
+      retrieval_rails:
+        enabled: true
+        source_validation:
+          enabled: true
+          trusted_domains:
+            - "*.edu"
+            - "*.gov" 
+            - "arxiv.org"
+            - "github.com"
+            - "stackoverflow.com"
+            
+        fact_checking:
+          enabled: true
+          threshold: 0.6
+          action: flag
+          
+      output_rails:
+        enabled: true
+        hallucination_filter:
+          enabled: true
+          threshold: 0.75  # Stricter for RAG
+          action: flag
+          
+    presidio:
+      enabled: true
+      pii_detection:
+        mode: balanced_precision  # Balance for RAG queries
+        confidence_threshold: 0.85  # Higher precision
+        
+      entities:
+        - PERSON
+        - EMAIL_ADDRESS
+        - PHONE_NUMBER
+        - LOCATION
+        - DATE_TIME
+        
+      redaction_strategy: redact  # Simple redaction for queries
+      
+      risk_levels:
+        low:
+          action: redact
+        medium:
+          action: redact
+          alert: true
+        high:
+          action: block
+          escalate: true
+
+  # Public API Endpoints - Basic Security
+  /v1/public/chat:
+    description: "Public chat interface with basic protections"
+    enabled: true
+    priority: medium
+    
+    nemo_guardrails:
+      enabled: true
+      
+      input_rails:
+        jailbreak_detection:
+          enabled: true
+          confidence_threshold: 0.7
+          action: warn
+          
+        content_moderation:
+          enabled: true
+          toxicity_threshold: 0.6  # Stricter for public
+          action: block
+          
+      dialog_rails:
+        max_turns: 20  # Limit for public
+        rate_limiting:
+          enabled: true
+          requests_per_minute: 30
+          
+    presidio:
+      enabled: true
+      pii_detection:
+        mode: high_precision  # Minimize false positives for public
+        confidence_threshold: 0.9
+        
+      entities:
+        - PERSON
+        - EMAIL_ADDRESS
+        - PHONE_NUMBER
+        - SSN
+        - CREDIT_CARD
+        
+      redaction_strategy: block  # Block PII in public endpoints
+      
+      risk_levels:
+        low:
+          action: redact
+        medium:
+          action: block
+        high:
+          action: block
+          rate_limit: true
+
+  # Admin/Debug Endpoints - Minimal Security (Internal Only)
+  /v1/admin/debug:
+    description: "Administrative debug interface - internal only"
+    enabled: true
+    priority: low
+    network_restriction: "10.0.0.0/8"  # Internal network only
+    
+    nemo_guardrails:
+      enabled: false  # Minimal restrictions for debugging
+      
+    presidio:
+      enabled: true
+      pii_detection:
+        mode: audit_only  # Log but don't block for debugging
+        confidence_threshold: 0.7
+        
+      entities:
+        - SSN
+        - CREDIT_CARD
+        - US_PASSPORT
+        
+      redaction_strategy: audit
+      action: log  # Log PII detection for security audit
+
+# Security Incident Response
+incident_response:
+  enabled: true
+  
+  # Escalation Rules
+  escalation_levels:
+    p1_critical:
+      triggers:
+        - pii_fn_rate > 0.02  # Above 2% false negative
+        - repeated_jailbreak_attempts > 5
+        - credential_harvesting_detected
+      response_time: "5 minutes"
+      notifications:
+        - security_team
+        - engineering_leadership
+        
+    p2_high:
+      triggers:
+        - fp_rate > 0.07  # Above 7% false positive
+        - topic_violation_spike
+        - unusual_traffic_patterns  
+      response_time: "30 minutes"
+      notifications:
+        - security_team
+        - on_call_engineer
+        
+    p3_medium:
+      triggers:
+        - performance_degradation
+        - policy_tune_needed
+      response_time: "4 hours"
+      notifications:
+        - security_team
+
+# Monitoring and Alerting
+monitoring:
+  enabled: true
+  
+  # Performance Metrics
+  metrics:
+    collection_interval: 30  # seconds
+    retention_period: "30 days"
+    
+    # Core KPIs
+    kpis:
+      - name: false_positive_rate
+        target: "< 0.05"
+        critical_threshold: 0.08
+        
+      - name: pii_false_negative_rate
+        target: "< 0.01"  
+        critical_threshold: 0.02
+        
+      - name: avg_latency_ms
+        target: "< 150"
+        critical_threshold: 300
+        
+      - name: availability
+        target: "> 0.9995"
+        critical_threshold: 0.995
+        
+  # Alert Rules
+  alerts:
+    - name: GuardrailsFalsePositiveHigh
+      condition: "false_positive_rate > 0.05"
+      severity: warning
+      duration: "2m"
+      runbook: "Tune recognizer confidence thresholds"
+      
+    - name: PIIFalseNegativeCritical
+      condition: "pii_false_negative_rate > 0.01"
+      severity: critical
+      duration: "1m"
+      runbook: "IMMEDIATE: Review PII detection - potential breach risk"
+      
+    - name: GuardrailsLatencyHigh
+      condition: "avg_latency_ms > 200"
+      severity: warning
+      duration: "5m"
+      runbook: "Check guardrails processing performance"
+      
+    - name: SecurityViolationSpike
+      condition: "rate(security_violations_total[5m]) > 20"
+      severity: warning
+      duration: "2m"
+      runbook: "Investigate potential attack patterns"
+
+# Audit and Compliance
+audit:
+  enabled: true
+  
+  # Audit Logging
+  logging:
+    level: INFO
+    format: json
+    destination: "/var/log/guardrails/audit.log"
+    retention_days: 90
+    
+    # What to log
+    events:
+      - policy_violations
+      - pii_detections
+      - security_blocks
+      - escalations
+      - configuration_changes
+      - performance_anomalies
+      
+  # Compliance Requirements  
+  compliance:
+    gdpr:
+      enabled: true
+      data_retention_days: 30
+      right_to_erasure: true
+      
+    hipaa:
+      enabled: false  # Enable if processing healthcare data
+      encryption_required: true
+      
+    ccpa:
+      enabled: true
+      consumer_rights: true
+
+# Testing and Validation
+testing:
+  enabled: true
+  
+  # Automated Security Testing
+  security_tests:
+    frequency: daily
+    test_suites:
+      - prompt_injection_variants
+      - jailbreak_techniques
+      - pii_evasion_attempts
+      - unicode_obfuscation
+      - social_engineering
+      
+  # Performance Testing  
+  performance_tests:
+    frequency: weekly
+    load_testing:
+      concurrent_users: 100
+      duration_minutes: 30
+      
+  # Regression Testing
+  regression_tests:
+    frequency: "on_deployment"
+    baseline_accuracy: 0.89
+
+# Feature Flags for Gradual Rollout
+feature_flags:
+  enhanced_pii_detection:
+    enabled: true
+    rollout_percentage: 100
+    
+  advanced_jailbreak_protection:
+    enabled: true
+    rollout_percentage: 100
+    
+  experimental_context_awareness:
+    enabled: false  # Not ready for production
+    rollout_percentage: 5
+    
+  ml_bias_detection:
+    enabled: true
+    rollout_percentage: 80
+
+---
+# Policy Metadata
+metadata:
+  version: "2.0"
+  created_by: "Claude (DeepAgent)"  
+  created_date: "2025-09-30"
+  last_updated: "2025-09-30"
+  review_cycle: "monthly"
+  next_review: "2025-10-30"
+  approval_status: "pending_review"
+  
+  # Change Log
+  changelog:
+    - version: "2.0"
+      date: "2025-09-30"
+      changes: "Initial implementation with NeMo + Presidio stack"
+      author: "Claude (DeepAgent)"
+      
+    - version: "1.0"
+      date: "2025-09-15"  
+      changes: "Initial policy framework definition"
+      author: "Security Team"

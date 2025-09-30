@@ -1,0 +1,507 @@
+# RAG System Prometheus Monitoring Rules
+# Comprehensive observability for RAG 2.0 with hybrid search and semantic caching
+
+# ================================
+# RAG HYBRID SEARCH METRICS
+# ================================
+
+# Request and response metrics
+- name: primarch_rag_hybrid_requests_total
+  type: counter
+  help: Total number of hybrid search requests
+  labels:
+    - fusion_strategy
+    - tenant_id
+    - user_id
+    - query_type
+
+- name: primarch_rag_hybrid_duration_seconds
+  type: histogram
+  help: Time spent on hybrid search execution
+  labels:
+    - retriever_type
+    - fusion_strategy
+    - tenant_id
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
+
+- name: primarch_rag_bm25_duration_seconds
+  type: histogram
+  help: BM25 retrieval execution time
+  labels:
+    - tenant_id
+    - corpus_size_category
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0]
+
+- name: primarch_rag_vector_duration_seconds
+  type: histogram
+  help: Vector search execution time
+  labels:
+    - tenant_id
+    - vector_store_type
+    - embedding_model
+  buckets: [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0, 2.0]
+
+- name: primarch_rag_fusion_duration_seconds
+  type: histogram
+  help: Time spent on result fusion (RRF)
+  labels:
+    - fusion_algorithm
+    - result_count_category
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25]
+
+# Fusion quality metrics
+- name: primarch_rag_fusion_weights
+  type: gauge
+  help: Current fusion weights for BM25 vs Vector
+  labels:
+    - tenant_id
+    - query_type
+    - weight_type  # bm25_weight, vector_weight
+
+- name: primarch_rag_adaptive_fusion_decisions_total
+  type: counter
+  help: Number of adaptive fusion weight changes
+  labels:
+    - original_strategy
+    - adapted_strategy
+    - query_characteristics
+
+# ================================
+# SEMANTIC CACHE METRICS
+# ================================
+
+# Cache performance metrics
+- name: primarch_rag_cache_requests_total
+  type: counter
+  help: Total cache requests
+  labels:
+    - cache_type  # L1, L2, similarity_index
+    - hit_miss
+    - tenant_id
+
+- name: primarch_rag_cache_hit_ratio
+  type: gauge
+  help: Cache hit ratio by type and tenant
+  labels:
+    - cache_type
+    - tenant_id
+
+- name: primarch_rag_cache_lookup_duration_seconds
+  type: histogram
+  help: Time spent on cache lookups
+  labels:
+    - cache_type
+    - tenant_id
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25]
+
+- name: primarch_rag_cache_similarity_scores
+  type: histogram
+  help: Distribution of cache similarity scores
+  labels:
+    - tenant_id
+  buckets: [0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99, 1.0]
+
+# Cache size and health metrics
+- name: primarch_rag_cache_size_bytes
+  type: gauge
+  help: Current cache size in bytes
+  labels:
+    - cache_backend
+    - tenant_id
+
+- name: primarch_rag_cache_entries_total
+  type: gauge
+  help: Number of entries in cache
+  labels:
+    - cache_type
+    - tenant_id
+
+- name: primarch_rag_cache_evictions_total
+  type: counter
+  help: Number of cache evictions
+  labels:
+    - eviction_reason  # ttl_expired, size_limit, manual
+    - tenant_id
+
+- name: primarch_rag_cache_ttl_seconds
+  type: histogram
+  help: Distribution of cache TTL values
+  labels:
+    - tenant_id
+    - query_type
+  buckets: [300, 600, 1800, 3600, 7200, 14400, 28800, 86400]
+
+# Cache cost savings metrics
+- name: primarch_rag_cache_api_calls_saved_total
+  type: counter
+  help: Number of API calls saved by caching
+  labels:
+    - tenant_id
+    - api_provider
+
+- name: primarch_rag_cache_cost_savings_dollars
+  type: counter
+  help: Estimated cost savings from caching in dollars
+  labels:
+    - tenant_id
+    - cost_category  # llm_api, compute, network
+
+# ================================
+# QUERY PLANNING METRICS
+# ================================
+
+# Query analysis and planning
+- name: primarch_rag_query_planning_duration_seconds
+  type: histogram
+  help: Time spent on query planning
+  labels:
+    - strategy_type
+    - complexity_level
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5]
+
+- name: primarch_rag_query_strategies_total
+  type: counter
+  help: Query strategy selections
+  labels:
+    - strategy  # single, multi_hop, decomposition, expansion
+    - tenant_id
+
+- name: primarch_rag_query_decomposition_steps
+  type: histogram
+  help: Number of steps in decomposed queries
+  labels:
+    - tenant_id
+  buckets: [1, 2, 3, 4, 5, 7, 10, 15]
+
+- name: primarch_rag_parallel_queries_total
+  type: counter
+  help: Number of parallel queries executed
+  labels:
+    - tenant_id
+    - query_type
+
+- name: primarch_rag_query_expansion_terms
+  type: histogram
+  help: Number of terms added during query expansion
+  labels:
+    - expansion_method
+  buckets: [1, 2, 3, 5, 8, 12, 20]
+
+# ================================
+# QUALITY AND PERFORMANCE METRICS
+# ================================
+
+# Retrieval quality metrics
+- name: primarch_rag_retrieval_recall_score
+  type: histogram
+  help: Retrieval recall scores
+  labels:
+    - tenant_id
+    - k_value
+    - retrieval_method
+  buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+- name: primarch_rag_retrieval_precision_score
+  type: histogram
+  help: Retrieval precision scores
+  labels:
+    - tenant_id
+    - k_value
+    - retrieval_method
+  buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+- name: primarch_rag_ndcg_score
+  type: histogram
+  help: NDCG scores for ranking quality
+  labels:
+    - tenant_id
+    - k_value
+    - method  # hybrid, bm25_only, vector_only
+  buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+- name: primarch_rag_mrr_score
+  type: histogram
+  help: Mean Reciprocal Rank scores
+  labels:
+    - tenant_id
+    - retrieval_method
+  buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+# End-to-end performance
+- name: primarch_rag_total_latency_seconds
+  type: histogram
+  help: Total RAG pipeline latency
+  labels:
+    - tenant_id
+    - cache_hit
+    - fusion_used
+  buckets: [0.1, 0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 12.0, 20.0]
+
+- name: primarch_rag_documents_retrieved
+  type: histogram
+  help: Number of documents retrieved per query
+  labels:
+    - tenant_id
+    - retrieval_stage  # initial, post_fusion, post_rerank
+  buckets: [1, 5, 10, 20, 50, 100, 200, 500]
+
+# ================================
+# ERROR AND HEALTH METRICS
+# ================================
+
+# Error tracking
+- name: primarch_rag_errors_total
+  type: counter
+  help: Total RAG pipeline errors
+  labels:
+    - error_type  # cache_miss, retrieval_failure, fusion_error, timeout
+    - component   # bm25, vector, cache, reranker, llm
+    - tenant_id
+
+- name: primarch_rag_timeouts_total
+  type: counter
+  help: Number of operation timeouts
+  labels:
+    - operation   # retrieval, caching, reranking, generation
+    - tenant_id
+
+- name: primarch_rag_fallback_activations_total
+  type: counter
+  help: Number of fallback mechanism activations
+  labels:
+    - fallback_type  # cache_to_retrieval, hybrid_to_vector, vector_to_bm25
+    - tenant_id
+
+# Resource utilization
+- name: primarch_rag_active_requests
+  type: gauge
+  help: Number of currently active RAG requests
+  labels:
+    - tenant_id
+    - operation_type
+
+- name: primarch_rag_queue_length
+  type: gauge
+  help: Length of RAG processing queue
+  labels:
+    - queue_type  # retrieval, caching, reranking
+    - priority
+
+- name: primarch_rag_memory_usage_bytes
+  type: gauge
+  help: Memory usage by RAG components
+  labels:
+    - component
+    - tenant_id
+
+# ================================
+# BUSINESS METRICS
+# ================================
+
+# Cost and efficiency
+- name: primarch_rag_cost_per_query_dollars
+  type: histogram
+  help: Cost per RAG query in dollars
+  labels:
+    - tenant_id
+    - cost_components  # cache, retrieval, rerank, generation
+  buckets: [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5]
+
+- name: primarch_rag_token_usage_total
+  type: counter
+  help: Total tokens consumed
+  labels:
+    - tenant_id
+    - token_type  # input, output, embedding
+    - provider
+
+- name: primarch_rag_user_satisfaction_score
+  type: histogram
+  help: User satisfaction scores
+  labels:
+    - tenant_id
+    - response_type  # cached, fresh, hybrid
+  buckets: [1, 2, 3, 4, 5]
+
+# ================================
+# ALERT RULES
+# ================================
+
+# High-level system health alerts
+- alert: RAGHighErrorRate
+  expr: |
+    (
+      rate(primarch_rag_errors_total[5m]) / 
+      rate(primarch_rag_hybrid_requests_total[5m])
+    ) > 0.05
+  for: 2m
+  labels:
+    severity: warning
+    component: rag
+  annotations:
+    summary: "High RAG error rate detected"
+    description: "RAG error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+# Cache performance alerts
+- alert: RAGCacheMissRateHigh
+  expr: |
+    1 - (
+      rate(primarch_rag_cache_requests_total{hit_miss="hit"}[10m]) /
+      rate(primarch_rag_cache_requests_total[10m])
+    ) > 0.7
+  for: 3m
+  labels:
+    severity: warning
+    component: rag_cache
+  annotations:
+    summary: "RAG cache miss rate is high"
+    description: "Cache miss rate is {{ $value | humanizePercentage }}"
+
+- alert: RAGCacheLatencyHigh
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_rag_cache_lookup_duration_seconds_bucket[5m])
+    ) > 0.1
+  for: 2m
+  labels:
+    severity: warning
+    component: rag_cache
+  annotations:
+    summary: "High RAG cache lookup latency"
+    description: "Cache lookup p95 latency is {{ $value }}s"
+
+# Retrieval performance alerts
+- alert: RAGHybridLatencyHigh
+  expr: |
+    histogram_quantile(0.95,
+      rate(primarch_rag_hybrid_duration_seconds_bucket[5m])
+    ) > 2.0
+  for: 3m
+  labels:
+    severity: warning
+    component: rag_retrieval
+  annotations:
+    summary: "High RAG hybrid search latency"
+    description: "Hybrid search p95 latency is {{ $value }}s"
+
+- alert: RAGTotalLatencyHigh
+  expr: |
+    histogram_quantile(0.95,
+      rate(primarch_rag_total_latency_seconds_bucket[5m])
+    ) > 5.0
+  for: 2m
+  labels:
+    severity: critical
+    component: rag
+  annotations:
+    summary: "High RAG total pipeline latency"
+    description: "Total RAG p95 latency is {{ $value }}s, exceeding 5s threshold"
+
+# Quality degradation alerts
+- alert: RAGQualityDegradation
+  expr: |
+    avg_over_time(primarch_rag_ndcg_score[1h]) < 0.7
+  for: 5m
+  labels:
+    severity: warning
+    component: rag_quality
+  annotations:
+    summary: "RAG quality degradation detected"
+    description: "Average NDCG score is {{ $value }}, below 0.7 threshold"
+
+# Resource alerts
+- alert: RAGHighQueueLength
+  expr: primarch_rag_queue_length > 50
+  for: 2m
+  labels:
+    severity: warning
+    component: rag
+  annotations:
+    summary: "High RAG queue length"
+    description: "RAG queue length is {{ $value }}"
+
+- alert: RAGHighMemoryUsage
+  expr: |
+    primarch_rag_memory_usage_bytes / (1024^3) > 8  # 8GB
+  for: 5m
+  labels:
+    severity: warning
+    component: rag
+  annotations:
+    summary: "High RAG memory usage"
+    description: "RAG memory usage is {{ $value | humanize }}GB"
+
+# Cost alerts
+- alert: RAGHighCostPerQuery
+  expr: |
+    histogram_quantile(0.90,
+      rate(primarch_rag_cost_per_query_dollars_bucket[1h])
+    ) > 0.1
+  for: 10m
+  labels:
+    severity: warning
+    component: rag_cost
+  annotations:
+    summary: "High RAG cost per query"
+    description: "RAG p90 cost per query is ${{ $value }}"
+
+# Cache health alerts
+- alert: RAGCacheEvictionsHigh
+  expr: rate(primarch_rag_cache_evictions_total[10m]) > 10
+  for: 3m
+  labels:
+    severity: warning
+    component: rag_cache
+  annotations:
+    summary: "High cache eviction rate"
+    description: "Cache eviction rate is {{ $value }} per second"
+
+# ================================
+# RECORDING RULES
+# ================================
+
+# Aggregated performance metrics
+- record: primarch:rag_success_rate_5m
+  expr: |
+    1 - (
+      rate(primarch_rag_errors_total[5m]) /
+      rate(primarch_rag_hybrid_requests_total[5m])
+    )
+
+- record: primarch:rag_cache_hit_rate_5m
+  expr: |
+    rate(primarch_rag_cache_requests_total{hit_miss="hit"}[5m]) /
+    rate(primarch_rag_cache_requests_total[5m])
+
+- record: primarch:rag_avg_latency_5m
+  expr: |
+    histogram_quantile(0.5,
+      rate(primarch_rag_total_latency_seconds_bucket[5m])
+    )
+
+- record: primarch:rag_p95_latency_5m
+  expr: |
+    histogram_quantile(0.95,
+      rate(primarch_rag_total_latency_seconds_bucket[5m])
+    )
+
+# Quality aggregations
+- record: primarch:rag_avg_ndcg_1h
+  expr: avg_over_time(primarch_rag_ndcg_score[1h])
+
+- record: primarch:rag_avg_mrr_1h
+  expr: avg_over_time(primarch_rag_mrr_score[1h])
+
+# Cost efficiency metrics
+- record: primarch:rag_cost_savings_rate_1h
+  expr: |
+    rate(primarch_rag_cache_cost_savings_dollars[1h]) /
+    rate(primarch_rag_hybrid_requests_total[1h])
+
+- record: primarch:rag_api_call_reduction_rate_1h
+  expr: |
+    rate(primarch_rag_cache_api_calls_saved_total[1h]) /
+    (
+      rate(primarch_rag_cache_api_calls_saved_total[1h]) +
+      rate(primarch_rag_hybrid_requests_total{cache_hit="false"}[1h])
+    )

@@ -1,0 +1,282 @@
+# Data Export Mapping Specifications
+version: 1
+
+datasets:
+  messages:
+    description: "User-assistant conversation history"
+    internal_table: "messages"
+    lineage_node: "messages"  # from Ch.16
+    retention_class: "user_data"
+    export_fields:
+      message_id:
+        type: "string"
+        source: "id"
+        pii_flag: false
+        description: "Unique message identifier"
+      session_id:
+        type: "string" 
+        source: "session_id"
+        pii_flag: false
+        description: "Conversation session grouping"
+      timestamp:
+        type: "timestamp"
+        source: "created_at"
+        pii_flag: false
+        format: "ISO8601"
+      role:
+        type: "string"
+        source: "role"
+        pii_flag: false
+        enum: ["user", "assistant", "system"]
+      content:
+        type: "string"
+        source: "content"
+        pii_flag: true
+        masking_options: ["redact", "hash", "truncate"]
+      model:
+        type: "string"
+        source: "model"
+        pii_flag: false
+        description: "LLM model used for response"
+      token_count:
+        type: "integer"
+        source: "token_count"
+        pii_flag: false
+      cost_estimate:
+        type: "decimal"
+        source: "estimated_cost"
+        pii_flag: false
+        precision: 6
+        
+  tool_calls:
+    description: "External API tool invocations"
+    internal_table: "tool_calls"
+    lineage_node: "tool_calls"
+    retention_class: "operational_data"
+    export_fields:
+      call_id:
+        type: "string"
+        source: "id"
+        pii_flag: false
+      message_id:
+        type: "string"
+        source: "message_id"
+        pii_flag: false
+        description: "Associated message reference"
+      timestamp:
+        type: "timestamp"
+        source: "created_at"
+        pii_flag: false
+      tool_name:
+        type: "string"
+        source: "tool"
+        pii_flag: false
+      endpoint:
+        type: "string"
+        source: "endpoint"
+        pii_flag: false
+      request_payload:
+        type: "json"
+        source: "request"
+        pii_flag: true
+        masking_options: ["redact_keys", "hash_values"]
+      response_payload:
+        type: "json"
+        source: "response"
+        pii_flag: true
+        masking_options: ["redact_keys", "hash_values"]
+      status_code:
+        type: "integer"
+        source: "status"
+        pii_flag: false
+      latency_ms:
+        type: "integer"
+        source: "latency"
+        pii_flag: false
+      cost:
+        type: "decimal"
+        source: "cost"
+        pii_flag: false
+        
+  embeddings:
+    description: "Vector embeddings and metadata"
+    internal_table: "embeddings"
+    lineage_node: "embeddings"
+    retention_class: "derived_data"
+    opt_in_required: true  # large dataset
+    export_fields:
+      embedding_id:
+        type: "string"
+        source: "id"
+        pii_flag: false
+      text_content:
+        type: "string"
+        source: "text"
+        pii_flag: true
+        masking_options: ["redact", "hash"]
+      vector_data:
+        type: "array[float]"
+        source: "embedding"
+        pii_flag: false
+        dimensions: 1536  # model-specific
+      model:
+        type: "string"
+        source: "model"
+        pii_flag: false
+      timestamp:
+        type: "timestamp"
+        source: "created_at"
+        pii_flag: false
+      metadata:
+        type: "json"
+        source: "metadata"
+        pii_flag: true
+        
+  attachments_meta:
+    description: "File attachment metadata (not binary content)"
+    internal_table: "attachments"
+    lineage_node: "attachments"
+    retention_class: "user_data"
+    export_fields:
+      attachment_id:
+        type: "string"
+        source: "id"
+        pii_flag: false
+      message_id:
+        type: "string"
+        source: "message_id"
+        pii_flag: false
+      filename:
+        type: "string"
+        source: "filename"
+        pii_flag: true
+        description: "Original filename (may contain PII)"
+      content_type:
+        type: "string"
+        source: "content_type"
+        pii_flag: false
+      size_bytes:
+        type: "integer"
+        source: "size"
+        pii_flag: false
+      upload_timestamp:
+        type: "timestamp"
+        source: "created_at"
+        pii_flag: false
+      hash_sha256:
+        type: "string"
+        source: "hash"
+        pii_flag: false
+        description: "Content hash for integrity"
+        
+  support_tickets:
+    description: "Customer support interactions"
+    internal_table: "support_tickets"
+    lineage_node: "support"
+    retention_class: "business_records"
+    export_fields:
+      ticket_id:
+        type: "string"
+        source: "id"
+        pii_flag: false
+      created_timestamp:
+        type: "timestamp"
+        source: "created_at"
+        pii_flag: false
+      channel:
+        type: "string"
+        source: "channel"
+        pii_flag: false
+      category:
+        type: "string"
+        source: "kind"
+        pii_flag: false
+      severity:
+        type: "string"
+        source: "severity"
+        pii_flag: false
+      title:
+        type: "string"
+        source: "title"
+        pii_flag: true
+      description:
+        type: "string"
+        source: "description"
+        pii_flag: true
+      status:
+        type: "string"
+        source: "status"
+        pii_flag: false
+      resolution:
+        type: "string"
+        source: "resolution"
+        pii_flag: true
+        
+  invoices:
+    description: "Billing and payment history"
+    internal_table: "invoices"
+    lineage_node: "billing"
+    retention_class: "financial_records"
+    export_fields:
+      invoice_id:
+        type: "string"
+        source: "invoice_id"
+        pii_flag: false
+      period_start:
+        type: "date"
+        source: "period_start"
+        pii_flag: false
+      period_end:
+        type: "date" 
+        source: "period_end"
+        pii_flag: false
+      subtotal:
+        type: "decimal"
+        source: "subtotal"
+        pii_flag: false
+        precision: 2
+      credits:
+        type: "decimal"
+        source: "credits"
+        pii_flag: false
+      total:
+        type: "decimal"
+        source: "total"
+        pii_flag: false
+      status:
+        type: "string"
+        source: "status"
+        pii_flag: false
+      issued_date:
+        type: "timestamp"
+        source: "created_at"
+        pii_flag: false
+      due_date:
+        type: "timestamp"
+        source: "due_at"
+        pii_flag: false
+
+pii_masking_options:
+  redact:
+    description: "Replace with [REDACTED]"
+    reversible: false
+  hash:
+    description: "SHA256 hash with salt"
+    reversible: false
+    preserve_uniqueness: true
+  truncate:
+    description: "Keep first N characters"
+    reversible: false
+    default_length: 10
+  redact_keys:
+    description: "Remove specified JSON keys"
+    configurable: true
+  hash_values:
+    description: "Hash JSON values, preserve structure"
+    reversible: false
+
+export_validation:
+  required_fields: ["tenant_id", "timestamp", "schema_version"]
+  max_null_percentage: 0.05  # 5% null values max
+  timestamp_range_check: true
+  foreign_key_validation: true

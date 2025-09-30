@@ -1,0 +1,9 @@
+name: embeddings
+schema:
+  - {name: point_id,   type: uuid, required: true}
+  - {name: request_id, type: uuid, required: true}
+  - {name: dim,        type: int,  required: true}
+  - {name: vec,        type: vector, required: true}
+invariants:
+  - "dim = 1536"   # adjust per active model route
+  - "cardinality(vec) = dim"

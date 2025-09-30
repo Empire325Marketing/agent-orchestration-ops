@@ -1,0 +1,14 @@
+# Prometheus-style alert sketches for DQ (conceptual)
+groups:
+- name: data-quality
+  rules:
+  - alert: DQViolationsHigh
+    expr: dq_violations_total{dataset=~"messages|tool_calls|embeddings"} > 0
+    for: 10m
+    labels: {severity: warning}
+    annotations: {summary: "Data quality violations detected"}
+  - alert: GoldenWinRateDrop
+    expr: golden_win_rate < 0.90
+    for: 30m
+    labels: {severity: critical}
+    annotations: {summary: "Golden win rate below threshold (Ch.13 gate)"}

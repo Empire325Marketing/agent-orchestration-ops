@@ -1,0 +1,7 @@
+personas:
+  FRANK:
+    status: active
+    manifest: personas/FRANK_MANIFEST.md
+    firewall_profile: promptguard_v2
+    notes: >
+      Assets referenced from /mnt/data. Re-run Chapter 28 to refresh checksums after any change.

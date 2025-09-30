@@ -1,0 +1,10 @@
+groups:
+- name: docs_alerts
+  rules:
+  - alert: DocsStaleHigh
+    expr: docs:stale_ratio > 0.2
+    for: 24h
+    labels: {severity="ticket"}
+    annotations:
+      summary: "KB stale ratio > 20%"
+      runbook: "runbooks/docs-drift.md"

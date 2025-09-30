@@ -1,0 +1,300 @@
+tools:
+  api_gateway:
+    name: "Kong API Gateway"
+    domain: "local"
+    endpoint: "http://localhost:8000"
+    auth: "none"
+    secrets_path: null
+    scopes: null
+    pii_tier: "low"
+    rate_limits:
+      qps: 1000
+      burst: 1500
+    timeouts_ms: 150
+    p50_ms: 10
+    p95_ms: 50
+    pagination: "none"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 50
+      max_ms: 500
+      max_retries: 3
+    fallback: "local_backup"
+    health_check:
+      method: "GET"
+      path: "/status"
+    logging_fields: ["tenant_id", "route", "status", "latency_ms"]
+    slo:
+      availability: 99.9
+      latency_p95: 150
+    notes: "Local Kong gateway for MVP"
+
+  orchestrator:
+    name: "Internal Orchestrator"
+    domain: "local"
+    endpoint: "http://localhost:8080"
+    auth: "none"
+    secrets_path: null
+    scopes: null
+    pii_tier: "low"
+    rate_limits:
+      qps: 500
+      burst: 750
+    timeouts_ms: 200
+    p50_ms: 15
+    p95_ms: 80
+    pagination: "none"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 100
+      max_ms: 1000
+      max_retries: 5
+    fallback: "cached_snapshot"
+    health_check:
+      method: "GET"
+      path: "/health"
+    logging_fields: ["tenant_id", "workflow_id", "status"]
+    slo:
+      availability: 99.9
+      latency_p95: 150
+    notes: "Internal MVP orchestrator"
+
+  postgres:
+    name: "PostgreSQL OLTP"
+    domain: "local"
+    endpoint: "postgresql://localhost:5432/primarch"
+    auth: "api_key"
+    secrets_path: "secret/data/tools/postgres"
+    scopes: null
+    pii_tier: "high"
+    rate_limits:
+      qps: 2000
+      burst: 3000
+    timeouts_ms: 50
+    p50_ms: 5
+    p95_ms: 20
+    pagination: "limit_offset"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 100
+      max_ms: 2000
+      max_retries: 3
+    fallback: "read_replica"
+    health_check:
+      method: "query"
+      path: "SELECT 1"
+    logging_fields: ["tenant_id", "query_type", "duration_ms"]
+    slo:
+      availability: 99.9
+      latency_p95: 20
+    notes: "Primary OLTP database with PII"
+
+  qdrant:
+    name: "Qdrant Vector DB"
+    domain: "local"
+    endpoint: "http://localhost:6333"
+    auth: "api_key"
+    secrets_path: "secret/data/tools/qdrant"
+    scopes: null
+    pii_tier: "high"
+    rate_limits:
+      qps: 100
+      burst: 200
+    timeouts_ms: 300
+    p50_ms: 50
+    p95_ms: 150
+    pagination: "scroll"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 200
+      max_ms: 3000
+      max_retries: 4
+    fallback: "pgvector"
+    health_check:
+      method: "GET"
+      path: "/collections"
+    logging_fields: ["tenant_id", "collection", "vector_dim"]
+    slo:
+      availability: 99.5
+      latency_p95: 150
+    notes: "Optional vector storage for scale-out"
+
+  llm_local:
+    name: "vLLM Local Runtime"
+    domain: "local"
+    endpoint: "http://localhost:8001"
+    auth: "none"
+    secrets_path: null
+    scopes: null
+    pii_tier: "low"
+    rate_limits:
+      qps: 10
+      burst: 20
+    timeouts_ms: 5000
+    p50_ms: 800
+    p95_ms: 1500
+    pagination: "none"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 500
+      max_ms: 10000
+      max_retries: 2
+    fallback: "cloud_llm"
+    health_check:
+      method: "GET"
+      path: "/health"
+    logging_fields: ["tenant_id", "model_id", "tokens_in", "tokens_out"]
+    slo:
+      availability: 99.5
+      latency_p95: 1500
+    notes: "Local Llama 3.1 8B runtime"
+
+  vault:
+    name: "HashiCorp Vault"
+    domain: "local"
+    endpoint: "http://localhost:8200"
+    auth: "oidc"
+    secrets_path: "secret/data/tools/vault"
+    scopes: ["vault:read", "vault:write"]
+    pii_tier: "none"
+    rate_limits:
+      qps: 100
+      burst: 150
+    timeouts_ms: 1000
+    p50_ms: 20
+    p95_ms: 100
+    pagination: "none"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 200
+      max_ms: 2000
+      max_retries: 5
+    fallback: "deny"
+    health_check:
+      method: "GET"
+      path: "/v1/sys/health"
+    logging_fields: ["path", "method", "status"]
+    slo:
+      availability: 99.9
+      latency_p95: 100
+    notes: "Secrets management"
+
+  otel_collector:
+    name: "OpenTelemetry Collector"
+    domain: "local"
+    endpoint: "http://localhost:4317"
+    auth: "none"
+    secrets_path: null
+    scopes: null
+    pii_tier: "low"
+    rate_limits:
+      qps: 5000
+      burst: 7500
+    timeouts_ms: 100
+    p50_ms: 5
+    p95_ms: 25
+    pagination: "none"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 50
+      max_ms: 500
+      max_retries: 3
+    fallback: "local_buffer"
+    health_check:
+      method: "GET"
+      path: "/"
+    logging_fields: ["service_name", "trace_id", "span_count"]
+    slo:
+      availability: 99.5
+      latency_p95: 25
+    notes: "Telemetry collection endpoint"
+
+  github:
+    name: "GitHub API"
+    domain: "external"
+    endpoint: "https://api.github.com"
+    auth: "api_key"
+    secrets_path: "secret/data/tools/github"
+    scopes: null
+    pii_tier: "none"
+    rate_limits:
+      qps: 50
+      burst: 100
+    timeouts_ms: 3000
+    p50_ms: 200
+    p95_ms: 500
+    pagination: "cursor"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 200
+      max_ms: 5000
+      max_retries: 5
+    fallback: "cached_snapshot"
+    health_check:
+      method: "GET"
+      path: "/rate_limit"
+    logging_fields: ["tenant_id", "repo", "action", "rate_remaining"]
+    slo:
+      availability: 99.0
+      latency_p95: 500
+    notes: "GitHub public API"
+
+  search_proxy:
+    name: "Search Proxy"
+    domain: "external"
+    endpoint: "https://search-proxy.example.com"
+    auth: "api_key"
+    secrets_path: "secret/data/tools/search_proxy"
+    scopes: null
+    pii_tier: "none"
+    rate_limits:
+      qps: 10
+      burst: 20
+    timeouts_ms: 3000
+    p50_ms: 300
+    p95_ms: 800
+    pagination: "page_token"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 300
+      max_ms: 5000
+      max_retries: 3
+    fallback: "local_index"
+    health_check:
+      method: "GET"
+      path: "/status"
+    logging_fields: ["tenant_id", "query_hash", "result_count"]
+    slo:
+      availability: 98.0
+      latency_p95: 800
+    notes: "Allow-listed search proxy"
+
+  weather_api:
+    name: "Weather API"
+    domain: "external"
+    endpoint: "https://api.weather.example.com"
+    auth: "api_key"
+    secrets_path: "secret/data/tools/weather"
+    scopes: null
+    pii_tier: "none"
+    rate_limits:
+      qps: 5
+      burst: 10
+    timeouts_ms: 3000
+    p50_ms: 400
+    p95_ms: 1000
+    pagination: "none"
+    retry_policy:
+      algo: "exponential_jitter"
+      base_ms: 500
+      max_ms: 5000
+      max_retries: 3
+    fallback: "cached_forecast"
+    health_check:
+      method: "GET"
+      path: "/status"
+    logging_fields: ["location", "date_range", "forecast_type"]
+    slo:
+      availability: 95.0
+      latency_p95: 1000
+    notes: "Example external weather service"

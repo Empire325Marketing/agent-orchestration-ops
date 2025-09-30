@@ -1,0 +1,12 @@
+golden_sets:
+  - name: golden_tasks_v1
+    source: "readiness/golden_tests.md"
+    owner: "platform-ml"
+safety_sets:
+  - name: redteam_v1
+    source: "safety/redteam_sets/"
+perf_sets:
+  - name: latency_probe_v1
+    routes: ["/v1/assist"]
+notes:
+  - "All datasets are versioned; any change triggers re-baseline."

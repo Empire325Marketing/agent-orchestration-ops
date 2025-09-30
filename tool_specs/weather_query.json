@@ -1,0 +1,44 @@
+{
+  "name": "weather_query",
+  "description": "Query weather information for a given location and date range",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "city": {
+        "type": "string",
+        "description": "City name for weather lookup",
+        "maxLength": 100
+      },
+      "country_code": {
+        "type": "string",
+        "description": "ISO country code",
+        "pattern": "^[A-Z]{2}$"
+      },
+      "date_range": {
+        "type": "object",
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "format": "date",
+            "description": "Start date in YYYY-MM-DD format"
+          },
+          "end_date": {
+            "type": "string",
+            "format": "date",
+            "description": "End date in YYYY-MM-DD format"
+          }
+        },
+        "required": ["start_date", "end_date"]
+      },
+      "forecast_type": {
+        "type": "string",
+        "enum": ["current", "forecast", "historical"],
+        "default": "current"
+      }
+    },
+    "required": ["city"]
+  },
+  "pii_tier": "none",
+  "rate_limit_warning": "This API has strict rate limits - use sparingly and cache results",
+  "audit_fields": ["city", "country_code", "forecast_type", "cache_hit"]
+}

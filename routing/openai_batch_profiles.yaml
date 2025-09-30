@@ -1,0 +1,277 @@
+# OpenAI Batch API Profiles for Primarch Cost-Optimized Processing
+# Version: 1.0 | Chapter 38 - Model Routing & Batching Optimization
+# Supports async workloads with 24h SLA and cost optimization
+
+# Global batch configuration
+global_config:
+  api_version: "2024-10-01-preview"
+  base_url: "https://api.openai.com/v1"
+  organization_env: OPENAI_ORG_ID
+  api_key_env: OPENAI_API_KEY
+  default_timeout_s: 30
+  max_retries: 3
+  retry_backoff_factor: 2.0
+
+# Batch processing profiles for different workload types
+profiles:
+  # Document extraction and analysis
+  document_extraction:
+    description: "Large-scale document processing with structured extraction"
+    endpoint: "/v1/chat/completions"
+    model: gpt-4o-mini
+    max_batch_items: 50000              # OpenAI batch limit
+    max_batch_tokens: 2000000           # Conservative token limit  
+    max_batch_size_mb: 100              # File size limit
+    sla_hours: 24                       # Standard batch SLA
+    priority: normal                    # normal | high | low
+    
+    # Request template and defaults
+    request_defaults:
+      max_tokens: 4096
+      temperature: 0.1                  # Deterministic for extraction
+      top_p: 1.0
+      frequency_penalty: 0.0
+      presence_penalty: 0.0
+      stop: null
+    
+    # Idempotency and deduplication
+    idempotency:
+      enabled: true
+      key_template: "doc_extract_{tenant_id}_{document_hash}"
+      hash_algorithm: sha256
+      ttl_hours: 168                    # 1 week retention
+    
+    # Export and storage configuration
+    export:
+      storage_type: s3_compatible
+      bucket_env: BATCH_EXPORT_BUCKET
+      prefix: "openai/batches/documents/"
+      retention_days: 90
+      compression: gzip
+      format: jsonl                     # OpenAI batch format
+    
+    # Error handling and retry logic
+    retry:
+      max_attempts: 2
+      backoff_strategy: exponential_jitter
+      base_delay_s: 60
+      max_delay_s: 1800
+      retry_on_errors: ["rate_limit", "server_error", "timeout"]
+      
+    # Cost and attribution
+    billing:
+      cost_center: "document_processing"
+      billing_meter: "tokens_in_out"
+      route_tag: "batch-openai-docs"
+      
+  # Invoice and financial document processing  
+  invoice_processing:
+    description: "Structured invoice data extraction with validation"
+    endpoint: "/v1/chat/completions"
+    model: gpt-4o-mini
+    max_batch_items: 10000
+    max_batch_tokens: 1500000
+    max_batch_size_mb: 75
+    sla_hours: 12                       # Faster SLA for financial data
+    priority: high
+    
+    request_defaults:
+      max_tokens: 2048                  # Smaller outputs for structured data
+      temperature: 0.0                  # Maximum determinism
+      top_p: 1.0
+      response_format: {"type": "json_object"}
+    
+    idempotency:
+      enabled: true
+      key_template: "invoice_{tenant_id}_{invoice_id}_{timestamp}"
+      hash_algorithm: sha256
+      ttl_hours: 720                    # 30 days for financial records
+    
+    export:
+      storage_type: s3_compatible
+      bucket_env: BATCH_EXPORT_BUCKET_SECURE    # Separate bucket for financial data
+      prefix: "openai/batches/invoices/"
+      retention_days: 2555              # 7 years for compliance
+      compression: gzip
+      encryption_enabled: true
+      kms_key_env: BATCH_ENCRYPTION_KEY
+      
+    retry:
+      max_attempts: 3                   # More aggressive retry for financial
+      backoff_strategy: exponential_jitter
+      base_delay_s: 30
+      max_delay_s: 900
+      
+    billing:
+      cost_center: "financial_processing"
+      billing_meter: "tokens_in_out"
+      route_tag: "batch-openai-invoices"
+
+  # Content summarization and analysis
+  content_analysis:
+    description: "Large-scale content summarization and analysis"
+    endpoint: "/v1/chat/completions" 
+    model: gpt-4o-mini
+    max_batch_items: 25000
+    max_batch_tokens: 3000000
+    max_batch_size_mb: 150
+    sla_hours: 24
+    priority: normal
+    
+    request_defaults:
+      max_tokens: 1024                  # Concise summaries
+      temperature: 0.3                  # Slight creativity for summaries
+      top_p: 0.9
+      
+    idempotency:
+      enabled: true
+      key_template: "content_{tenant_id}_{content_hash}"
+      hash_algorithm: sha256
+      ttl_hours: 72                     # Short retention for content
+      
+    export:
+      storage_type: s3_compatible
+      bucket_env: BATCH_EXPORT_BUCKET
+      prefix: "openai/batches/content/"
+      retention_days: 30                # Shorter retention
+      compression: gzip
+      
+    retry:
+      max_attempts: 2
+      backoff_strategy: exponential_jitter
+      base_delay_s: 120
+      max_delay_s: 3600
+      
+    billing:
+      cost_center: "content_processing"
+      billing_meter: "tokens_in_out"
+      route_tag: "batch-openai-content"
+
+  # Research and analysis (premium model)
+  research_analysis:
+    description: "High-quality research analysis using GPT-4"
+    endpoint: "/v1/chat/completions"
+    model: gpt-4-turbo-preview          # Premium model for quality
+    max_batch_items: 5000               # Smaller batches for premium
+    max_batch_tokens: 1000000
+    max_batch_size_mb: 50
+    sla_hours: 24
+    priority: high
+    
+    request_defaults:
+      max_tokens: 8192                  # Longer outputs for research
+      temperature: 0.2
+      top_p: 0.95
+      
+    idempotency:
+      enabled: true
+      key_template: "research_{tenant_id}_{query_hash}"
+      hash_algorithm: sha256
+      ttl_hours: 168                    # 1 week retention
+      
+    export:
+      storage_type: s3_compatible
+      bucket_env: BATCH_EXPORT_BUCKET
+      prefix: "openai/batches/research/"
+      retention_days: 365               # Longer retention for research
+      compression: gzip
+      
+    retry:
+      max_attempts: 3
+      backoff_strategy: exponential_jitter
+      base_delay_s: 180
+      max_delay_s: 7200
+      
+    billing:
+      cost_center: "research_processing"
+      billing_meter: "tokens_in_out"
+      route_tag: "batch-openai-research"
+
+# Global security and compliance settings
+security:
+  # PII handling and data protection
+  pii_detection:
+    enabled: true
+    redaction_mode: "mask"              # mask | remove | hash
+    pii_types: ["email", "phone", "ssn", "credit_card", "ip_address"]
+    
+  # Data residency and compliance
+  data_residency:
+    allowed_regions: ["us-east-1", "us-west-2", "eu-west-1"]
+    compliance_tags: ["SOC2", "GDPR", "HIPAA"]
+    
+  # Audit and logging
+  audit:
+    log_requests: true
+    log_responses: false                # Don't log full responses for security
+    log_pii_detection: true
+    audit_retention_days: 90
+
+# Monitoring and observability  
+observability:
+  metrics:
+    enabled: true
+    export_format: prometheus
+    custom_labels:
+      - profile_name
+      - tenant_id
+      - cost_center
+      - priority
+      
+  alerts:
+    batch_stuck_threshold_hours: 30
+    error_rate_threshold: 0.05
+    cost_anomaly_threshold_pct: 50
+    queue_depth_threshold: 1000
+    
+  tracing:
+    enabled: true
+    sample_rate: 0.1                    # 10% sampling for batch operations
+    trace_requests: true
+    trace_exports: false                # Skip tracing file operations
+
+# Queue management and scheduling
+queue_management:
+  default_queue: "standard"
+  queues:
+    standard:
+      max_concurrent_batches: 10
+      priority_weight: 1.0
+      rate_limit_rpm: 5000
+      
+    high_priority:
+      max_concurrent_batches: 5
+      priority_weight: 2.0
+      rate_limit_rpm: 3000
+      
+    low_priority:
+      max_concurrent_batches: 20
+      priority_weight: 0.5
+      rate_limit_rpm: 2000
+      
+  scheduling:
+    algorithm: "priority_fifo"          # priority_fifo | fair_share | round_robin
+    batch_timeout_hours: 48             # Maximum batch processing time
+    cleanup_completed_after_hours: 72   # Clean up old batch records
+
+# Cost optimization settings
+cost_optimization:
+  # Automatic model selection based on complexity
+  auto_model_selection:
+    enabled: false                      # Disable for now, explicit control
+    complexity_threshold: 0.7
+    fallback_model: "gpt-4o-mini"
+    
+  # Batch size optimization
+  dynamic_batching:
+    enabled: true
+    target_utilization: 0.85
+    min_batch_size: 100
+    max_wait_time_s: 1800               # 30 minutes
+    
+  # Cost monitoring and alerts
+  cost_controls:
+    daily_budget_usd: 1000
+    monthly_budget_usd: 25000
+    alert_threshold_pct: 80
+    auto_pause_on_budget_exceed: true

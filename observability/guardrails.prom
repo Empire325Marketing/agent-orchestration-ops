@@ -1,0 +1,480 @@
+# Prometheus Monitoring Rules for Primarch Guardrails
+# NeMo Guardrails + Presidio Stack
+# Updated: 2025-09-30
+
+# =============================================================================
+# CORE GUARDRAILS METRICS
+# =============================================================================
+
+# Request Processing Metrics
+- record: primarch:guardrails_requests_total
+  expr: |
+    sum(rate(guardrails_requests_total[5m])) by (layer, route, action, tenant)
+  labels:
+    component: "guardrails"
+    
+- record: primarch:guardrails_requests_per_second
+  expr: |
+    sum(rate(guardrails_requests_total[1m])) by (layer)
+
+# Security Violation Tracking
+- record: primarch:security_violations_total
+  expr: |
+    sum(rate(guardrails_violations_total[5m])) by (layer, violation_type, severity, tenant)
+  labels:
+    component: "security"
+    
+- record: primarch:security_violations_per_hour
+  expr: |
+    sum(rate(guardrails_violations_total[1h]) * 3600) by (violation_type)
+
+# =============================================================================
+# FALSE POSITIVE / FALSE NEGATIVE METRICS
+# =============================================================================
+
+# False Positive Rate (FPR) - Target: < 5%
+- record: primarch:guardrails_false_positive_rate
+  expr: |
+    (
+      sum(rate(guardrails_false_positives_total[10m])) by (layer, recognizer) /
+      sum(rate(guardrails_total_predictions[10m])) by (layer, recognizer)
+    ) * 100
+  labels:
+    metric_type: "accuracy"
+    target: "5.0"
+    
+- record: primarch:guardrails_false_positive_rate_5m
+  expr: |
+    (
+      sum(rate(guardrails_false_positives_total[5m])) by (layer) /
+      sum(rate(guardrails_total_predictions[5m])) by (layer)
+    ) * 100
+
+# False Negative Rate for PII (FNR) - Target: < 1%
+- record: primarch:pii_false_negative_rate
+  expr: |
+    (
+      sum(rate(presidio_false_negatives_total{entity_type=~".*"}[10m])) by (entity_type) /
+      sum(rate(presidio_total_pii_instances[10m])) by (entity_type)
+    ) * 100
+  labels:
+    metric_type: "privacy"
+    target: "1.0"
+    critical_threshold: "2.0"
+    
+- record: primarch:pii_false_negative_rate_critical
+  expr: |
+    (
+      sum(rate(presidio_false_negatives_total{entity_type=~"SSN|CREDIT_CARD|US_PASSPORT"}[10m])) by (entity_type) /
+      sum(rate(presidio_total_pii_instances{entity_type=~"SSN|CREDIT_CARD|US_PASSPORT"}[10m])) by (entity_type)
+    ) * 100
+
+# =============================================================================
+# ACTION TRACKING METRICS
+# =============================================================================
+
+# Block/Allow Ratios
+- record: primarch:guardrails_block_rate
+  expr: |
+    (
+      sum(rate(guardrails_actions_total{action="block"}[5m])) by (layer, route) /
+      sum(rate(guardrails_actions_total[5m])) by (layer, route)
+    ) * 100
+    
+- record: primarch:guardrails_allow_rate
+  expr: |
+    (
+      sum(rate(guardrails_actions_total{action="allow"}[5m])) by (layer, route) /
+      sum(rate(guardrails_actions_total[5m])) by (layer, route)
+    ) * 100
+
+# PII Redaction Metrics
+- record: primarch:pii_redaction_rate
+  expr: |
+    sum(rate(presidio_actions_total{action="redact"}[5m])) by (entity_type, route)
+    
+- record: primarch:pii_block_rate
+  expr: |
+    sum(rate(presidio_actions_total{action="block"}[5m])) by (entity_type, route)
+
+# Escalation Metrics
+- record: primarch:security_escalations_total
+  expr: |
+    sum(rate(guardrails_escalations_total[5m])) by (priority, reason)
+
+# =============================================================================
+# PERFORMANCE METRICS
+# =============================================================================
+
+# Latency Metrics
+- record: primarch:guardrails_latency_p95
+  expr: |
+    histogram_quantile(0.95, 
+      sum(rate(guardrails_duration_seconds_bucket[5m])) by (layer, operation, le)
+    ) * 1000
+  labels:
+    unit: "milliseconds"
+    target: "200"
+    
+- record: primarch:guardrails_latency_p99
+  expr: |
+    histogram_quantile(0.99, 
+      sum(rate(guardrails_duration_seconds_bucket[5m])) by (layer, operation, le)
+    ) * 1000
+
+# Component-Specific Latency
+- record: primarch:nemo_guardrails_latency_p95
+  expr: |
+    histogram_quantile(0.95,
+      sum(rate(guardrails_duration_seconds_bucket{layer="nemo_primary"}[5m])) by (operation, le)
+    ) * 1000
+    
+- record: primarch:presidio_latency_p95
+  expr: |
+    histogram_quantile(0.95,
+      sum(rate(guardrails_duration_seconds_bucket{layer="presidio_auxiliary"}[5m])) by (operation, le)
+    ) * 1000
+
+# Throughput Metrics
+- record: primarch:guardrails_throughput
+  expr: |
+    sum(rate(guardrails_requests_total[1m])) by (layer)
+  labels:
+    unit: "requests_per_second"
+
+# =============================================================================
+# AVAILABILITY AND HEALTH METRICS
+# =============================================================================
+
+# Component Availability
+- record: primarch:guardrails_availability
+  expr: |
+    (
+      sum(rate(guardrails_requests_total{status!~"5.."}[5m])) by (layer) /
+      sum(rate(guardrails_requests_total[5m])) by (layer)
+    ) * 100
+  labels:
+    target: "99.95"
+    
+# Health Check Success Rate
+- record: primarch:guardrails_health_check_success_rate
+  expr: |
+    (
+      sum(rate(guardrails_health_checks_total{status="success"}[5m])) by (component) /
+      sum(rate(guardrails_health_checks_total[5m])) by (component)
+    ) * 100
+
+# =============================================================================
+# SECURITY-SPECIFIC METRICS
+# =============================================================================
+
+# Jailbreak Detection Metrics
+- record: primarch:jailbreak_attempts_detected
+  expr: |
+    sum(rate(nemo_violations_total{violation_type="jailbreak"}[5m])) by (confidence_level)
+    
+- record: primarch:jailbreak_detection_accuracy
+  expr: |
+    (
+      sum(rate(nemo_jailbreak_true_positives[10m])) /
+      (sum(rate(nemo_jailbreak_true_positives[10m])) + sum(rate(nemo_jailbreak_false_positives[10m])))
+    ) * 100
+
+# Prompt Injection Detection
+- record: primarch:prompt_injection_blocked
+  expr: |
+    sum(rate(nemo_violations_total{violation_type="prompt_injection"}[5m]))
+    
+# PII Detection by Entity Type
+- record: primarch:pii_detections_by_type
+  expr: |
+    sum(rate(presidio_detections_total[5m])) by (entity_type, confidence_bucket)
+    
+# High-Risk PII Detections
+- record: primarch:high_risk_pii_detections
+  expr: |
+    sum(rate(presidio_detections_total{entity_type=~"SSN|CREDIT_CARD|US_PASSPORT|MEDICAL_LICENSE"}[5m]))
+
+# =============================================================================
+# CONFIDENCE AND QUALITY METRICS
+# =============================================================================
+
+# Average Confidence Scores
+- record: primarch:nemo_avg_confidence
+  expr: |
+    avg(nemo_confidence_score) by (violation_type)
+    
+- record: primarch:presidio_avg_confidence
+  expr: |
+    avg(presidio_confidence_score) by (entity_type)
+
+# Model Performance Metrics
+- record: primarch:guardrails_model_accuracy
+  expr: |
+    (
+      sum(rate(guardrails_true_positives[10m])) + sum(rate(guardrails_true_negatives[10m]))
+    ) / 
+    (
+      sum(rate(guardrails_true_positives[10m])) + sum(rate(guardrails_true_negatives[10m])) +
+      sum(rate(guardrails_false_positives[10m])) + sum(rate(guardrails_false_negatives[10m]))
+    ) * 100
+
+# =============================================================================
+# BUSINESS IMPACT METRICS
+# =============================================================================
+
+# User Experience Impact
+- record: primarch:user_requests_blocked_rate
+  expr: |
+    (
+      sum(rate(guardrails_actions_total{action="block"}[5m])) by (route) /
+      sum(rate(guardrails_requests_total[5m])) by (route)
+    ) * 100
+    
+# Privacy Protection Effectiveness
+- record: primarch:pii_protection_rate
+  expr: |
+    (
+      (sum(rate(presidio_actions_total{action=~"redact|block"}[5m]))) /
+      (sum(rate(presidio_detections_total[5m])))
+    ) * 100
+
+# Cost Impact (Token Usage)
+- record: primarch:guardrails_token_overhead
+  expr: |
+    sum(rate(guardrails_tokens_used[5m])) by (layer, operation)
+
+# =============================================================================
+# ALERTING RULES
+# =============================================================================
+
+groups:
+- name: guardrails_critical
+  rules:
+  
+  # Critical: PII False Negative Rate Too High
+  - alert: PIIFalseNegativeRateCritical
+    expr: primarch:pii_false_negative_rate > 1.0
+    for: 1m
+    labels:
+      severity: critical
+      component: presidio
+      runbook_url: "https://wiki.primarch.ai/runbooks/pii-false-negatives"
+    annotations:
+      summary: "PII false negative rate exceeds critical threshold"
+      description: "PII false negative rate is {{ $value }}%, exceeding the 1% threshold. Potential privacy breach risk."
+      impact: "High risk of PII leakage and regulatory violations"
+      action: "IMMEDIATE: Review Presidio configuration and retune recognizers"
+      
+  # Critical: High-Risk PII False Negatives
+  - alert: HighRiskPIIFalseNegativeCritical
+    expr: primarch:pii_false_negative_rate_critical > 0.5
+    for: 30s
+    labels:
+      severity: critical
+      component: presidio
+      pii_type: "high_risk"
+    annotations:
+      summary: "Critical PII types showing false negatives"
+      description: "High-risk PII entities (SSN, Credit Cards, etc.) false negative rate: {{ $value }}%"
+      action: "IMMEDIATE: Stop processing, review high-risk PII detection"
+
+- name: guardrails_warnings
+  rules:
+  
+  # Warning: False Positive Rate Too High
+  - alert: GuardrailsFalsePositiveHigh
+    expr: primarch:guardrails_false_positive_rate > 5.0
+    for: 2m
+    labels:
+      severity: warning
+      component: guardrails
+    annotations:
+      summary: "Guardrails false positive rate is high"
+      description: "False positive rate is {{ $value }}%, exceeding 5% threshold"
+      impact: "Degraded user experience due to blocked legitimate requests"
+      action: "Tune recognizer confidence thresholds and review recent policy changes"
+      
+  # Warning: Latency Too High
+  - alert: GuardrailsLatencyHigh
+    expr: primarch:guardrails_latency_p95 > 200
+    for: 3m
+    labels:
+      severity: warning
+      component: performance
+    annotations:
+      summary: "Guardrails processing latency is high"
+      description: "P95 latency is {{ $value }}ms, exceeding 200ms target"
+      impact: "Slower response times affecting user experience"
+      action: "Check resource usage and optimize processing pipeline"
+      
+  # Warning: Security Violation Spike
+  - alert: SecurityViolationSpike
+    expr: rate(primarch:security_violations_total[5m]) > 0.33  # >20 violations per minute
+    for: 2m
+    labels:
+      severity: warning
+      component: security
+    annotations:
+      summary: "Unusual spike in security violations"
+      description: "Security violations rate: {{ $value }} per second"
+      impact: "Potential coordinated attack or system misconfiguration"
+      action: "Investigate attack patterns and review recent traffic"
+      
+  # Warning: Component Availability Low
+  - alert: GuardrailsAvailabilityLow
+    expr: primarch:guardrails_availability < 99.9
+    for: 1m
+    labels:
+      severity: warning
+      component: availability
+    annotations:
+      summary: "Guardrails availability below target"
+      description: "Availability is {{ $value }}%, below 99.95% target"
+      action: "Check component health and error rates"
+
+- name: guardrails_performance
+  rules:
+  
+  # Performance: High Resource Usage
+  - alert: GuardrailsHighResourceUsage
+    expr: |
+      (
+        rate(container_cpu_usage_seconds_total{container=~"nemo-guardrails|presidio-analyzer"}[5m]) * 100
+      ) > 80
+    for: 5m
+    labels:
+      severity: warning
+      component: performance
+    annotations:
+      summary: "Guardrails component high CPU usage"
+      description: "CPU usage: {{ $value }}% for {{ $labels.container }}"
+      action: "Consider scaling or optimizing component configuration"
+      
+  # Performance: Memory Usage High  
+  - alert: GuardrailsHighMemoryUsage
+    expr: |
+      (
+        container_memory_working_set_bytes{container=~"nemo-guardrails|presidio-analyzer"} /
+        container_spec_memory_limit_bytes{container=~"nemo-guardrails|presidio-analyzer"}
+      ) * 100 > 85
+    for: 3m
+    labels:
+      severity: warning
+      component: performance
+    annotations:
+      summary: "Guardrails component high memory usage"
+      description: "Memory usage: {{ $value }}% for {{ $labels.container }}"
+      action: "Check for memory leaks or increase resource limits"
+
+- name: guardrails_business_impact
+  rules:
+  
+  # Business Impact: High Block Rate
+  - alert: GuardrailsHighBlockRate
+    expr: primarch:guardrails_block_rate > 15.0
+    for: 5m
+    labels:
+      severity: warning
+      component: business_impact
+    annotations:
+      summary: "High rate of requests being blocked"
+      description: "{{ $value }}% of requests blocked on route {{ $labels.route }}"
+      impact: "Significant user experience degradation"
+      action: "Review recent policy changes and analyze blocked requests"
+      
+  # Business Impact: Low User Satisfaction Proxy
+  - alert: GuardrailsUserImpact
+    expr: |
+      (
+        primarch:guardrails_false_positive_rate > 3.0 and
+        primarch:guardrails_block_rate > 10.0
+      )
+    for: 3m
+    labels:
+      severity: warning
+      component: user_experience
+    annotations:
+      summary: "Combined high false positives and block rate affecting users"
+      description: "FP rate: {{ $value }}%, Block rate affects user experience"
+      action: "Immediate policy review and user feedback analysis"
+
+# =============================================================================
+# DASHBOARD QUERIES
+# =============================================================================
+
+# Key Performance Indicators (KPIs) for Dashboard
+# 
+# 1. Security Effectiveness:
+#    - primarch:security_violations_total
+#    - primarch:jailbreak_attempts_detected  
+#    - primarch:prompt_injection_blocked
+#
+# 2. Privacy Protection:
+#    - primarch:pii_detections_by_type
+#    - primarch:pii_protection_rate
+#    - primarch:high_risk_pii_detections
+#
+# 3. Accuracy Metrics:
+#    - primarch:guardrails_false_positive_rate
+#    - primarch:pii_false_negative_rate
+#    - primarch:guardrails_model_accuracy
+#
+# 4. Performance:
+#    - primarch:guardrails_latency_p95
+#    - primarch:guardrails_throughput
+#    - primarch:guardrails_availability
+#
+# 5. Business Impact:
+#    - primarch:user_requests_blocked_rate
+#    - primarch:guardrails_block_rate
+#    - primarch:guardrails_allow_rate
+
+# =============================================================================
+# RECORDING RULE EVALUATION INTERVALS
+# =============================================================================
+
+# High-frequency metrics (every 30s)
+evaluation_interval: 30s
+rule_files:
+  - "guardrails_core_metrics.yml"
+  - "guardrails_security_metrics.yml" 
+  - "guardrails_performance_metrics.yml"
+
+# Medium-frequency metrics (every 1m)
+evaluation_interval: 60s  
+rule_files:
+  - "guardrails_accuracy_metrics.yml"
+  - "guardrails_business_metrics.yml"
+
+# =============================================================================
+# RETENTION POLICIES
+# =============================================================================
+
+# Metric retention configuration
+retention_policies:
+  high_frequency_metrics: "7d"    # Core operational metrics
+  security_metrics: "30d"         # Security events and violations  
+  accuracy_metrics: "90d"         # Model performance tracking
+  business_metrics: "365d"        # Long-term business impact analysis
+
+# =============================================================================
+# METADATA
+# =============================================================================
+
+# Configuration metadata
+metadata:
+  version: "2.0"
+  created_date: "2025-09-30"
+  created_by: "Claude (DeepAgent)"
+  target_stack: "NeMo Guardrails + Presidio"
+  sla_targets:
+    false_positive_rate: "<5%"
+    pii_false_negative_rate: "<1%"
+    latency_p95: "<200ms"
+    availability: ">99.95%"
+  alert_destinations:
+    - "security-team@primarch.ai"
+    - "sre-team@primarch.ai" 
+    - "pagerduty-guardrails"
+  runbook_base_url: "https://wiki.primarch.ai/runbooks/"

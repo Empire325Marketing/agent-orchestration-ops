@@ -1,0 +1,193 @@
+# LiteLLM Router Configuration for Primarch Model Routing
+# Version: 1.0 | Chapter 38 - Model Routing & Batching Optimization
+
+version: 1
+
+# Redis configuration for routing state and circuit breaker
+redis:
+  host: ${ROUTER_REDIS_HOST}
+  port: ${ROUTER_REDIS_PORT:-6379}
+  password_env: ROUTER_REDIS_PASSWORD
+  db: 0
+  ssl: ${ROUTER_REDIS_SSL:-false}
+  cluster_mode: ${ROUTER_REDIS_CLUSTER:-false}
+
+# Routing strategy and resilience settings
+routing:
+  strategy: usage-based-routing-v2    # options: simple, weighted, latency, least-busy, usage-based-routing-v2
+  num_retries: 3
+  timeout_s: 30
+  cooldown_s: 60
+  circuit_breaker_error_rate: 0.05
+  circuit_breaker_timeout_s: 300
+  enable_pre_call_checks: true
+  cache_responses: true
+  cache_ttl_s: 300
+
+# Model deployments with rate limits and parameters
+deployments:
+  # Primary OpenAI GPT-4 deployment
+  - name: openai-gpt4-turbo
+    model_name: gpt-4-turbo
+    rpm: 10000
+    tpm: 300000
+    max_parallel_requests: 100
+    litellm_params:
+      model: gpt-4-turbo-preview
+      api_key_env: OPENAI_API_KEY
+      organization_env: OPENAI_ORG_ID
+      max_tokens: 4096
+      temperature: 0.2
+    tags:
+      cost_tier: premium
+      latency_tier: fast
+      context_window: 128000
+
+  # Azure OpenAI fallback
+  - name: azure-gpt4-turbo
+    model_name: gpt-4-turbo
+    rpm: 8000
+    tpm: 250000
+    max_parallel_requests: 80
+    litellm_params:
+      model: azure/gpt-4-turbo
+      api_base_env: AZURE_OPENAI_ENDPOINT
+      api_key_env: AZURE_OPENAI_KEY
+      api_version: "2024-02-15-preview"
+      max_tokens: 4096
+      temperature: 0.2
+    tags:
+      cost_tier: balanced
+      latency_tier: fast
+      context_window: 128000
+
+  # Anthropic Claude fallback
+  - name: anthropic-claude-3-opus
+    model_name: gpt-4-turbo      # logical pool mapping
+    rpm: 5000
+    tpm: 200000
+    max_parallel_requests: 60
+    litellm_params:
+      model: claude-3-opus-20240229
+      api_key_env: ANTHROPIC_API_KEY
+      max_tokens: 4096
+      temperature: 0.2
+    tags:
+      cost_tier: premium
+      latency_tier: medium
+      context_window: 200000
+
+  # Local vLLM deployment for cost optimization
+  - name: vllm-local-llama-3-1-8b
+    model_name: llama-3.1-8b-instruct
+    rpm: 15000
+    tpm: 500000
+    max_parallel_requests: 200
+    litellm_params:
+      model: openai/llama-3.1-8b-instruct
+      api_base: http://vllm-server:8000/v1
+      api_key: dummy-key-for-local
+      max_tokens: 2048
+      temperature: 0.2
+    tags:
+      cost_tier: cheap
+      latency_tier: fast
+      context_window: 8192
+      local_inference: true
+
+  # GPT-4o-mini for cost-sensitive workloads
+  - name: openai-gpt4o-mini
+    model_name: gpt-4o-mini
+    rpm: 20000
+    tpm: 2000000
+    max_parallel_requests: 150
+    litellm_params:
+      model: gpt-4o-mini
+      api_key_env: OPENAI_API_KEY
+      organization_env: OPENAI_ORG_ID
+      max_tokens: 16384
+      temperature: 0.2
+    tags:
+      cost_tier: cheap
+      latency_tier: fast
+      context_window: 128000
+
+# Weighted routing configuration
+weights:
+  gpt-4-turbo:
+    openai-gpt4-turbo: 60
+    azure-gpt4-turbo: 25
+    anthropic-claude-3-opus: 15
+  llama-3.1-8b-instruct:
+    vllm-local-llama-3-1-8b: 100
+  gpt-4o-mini:
+    openai-gpt4o-mini: 100
+
+# Fallback chains for resilience
+fallbacks:
+  gpt-4-turbo: 
+    - anthropic-claude-3-opus
+    - vllm-local-llama-3-1-8b
+    - openai-gpt4o-mini
+  llama-3.1-8b-instruct:
+    - openai-gpt4o-mini
+    - anthropic-claude-3-opus
+  gpt-4o-mini:
+    - vllm-local-llama-3-1-8b
+
+# Context window fallbacks for large inputs
+context_window_fallbacks:
+  gpt-4-turbo: [anthropic-claude-3-opus]
+  llama-3.1-8b-instruct: [gpt-4-turbo, anthropic-claude-3-opus]
+  gpt-4o-mini: [gpt-4-turbo, anthropic-claude-3-opus]
+
+# Cost-aware routing tags
+tags:
+  cost_preference:
+    cheap: [vllm-local-llama-3-1-8b, openai-gpt4o-mini]
+    balanced: [azure-gpt4-turbo, openai-gpt4o-mini, vllm-local-llama-3-1-8b]
+    premium: [openai-gpt4-turbo, anthropic-claude-3-opus]
+  latency_preference:
+    fast: [openai-gpt4-turbo, vllm-local-llama-3-1-8b, openai-gpt4o-mini]
+    medium: [azure-gpt4-turbo, anthropic-claude-3-opus]
+  workload_type:
+    interactive: [openai-gpt4-turbo, vllm-local-llama-3-1-8b]
+    batch: [openai-gpt4o-mini, vllm-local-llama-3-1-8b]
+    analytical: [anthropic-claude-3-opus, openai-gpt4-turbo]
+
+# Health check configuration
+health_checks:
+  enabled: true
+  interval_s: 30
+  timeout_s: 10
+  failure_threshold: 3
+  success_threshold: 2
+
+# Logging and observability
+observability:
+  enable_tracing: true
+  trace_sampling_rate: 1.0
+  log_level: INFO
+  metrics_export: prometheus
+  metrics_port: 8080
+  custom_tags:
+    - routing_decision
+    - cost_tier
+    - fallback_used
+    - response_cached
+
+# Rate limiting and quotas
+rate_limits:
+  global_rpm: 50000
+  global_tpm: 3000000
+  per_user_rpm: 1000
+  per_user_tpm: 100000
+  burst_allowance: 1.2
+
+# Security settings  
+security:
+  api_key_rotation_enabled: true
+  log_api_keys: false
+  redact_pii: true
+  allowed_origins: ["https://primarch.internal"]
+  cors_enabled: true

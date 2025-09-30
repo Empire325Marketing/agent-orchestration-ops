@@ -1,0 +1,52 @@
+# Vault Secret Paths and Ownership
+# Note: These are conceptual paths - no actual secrets stored here
+
+secret_paths:
+  application:
+    api:
+      path: kv/primarch/app/api/*
+      owner: orchestrator
+      description: "API keys for external service integrations"
+      examples:
+        - kv/primarch/app/api/github
+        - kv/primarch/app/api/weather
+        - kv/primarch/app/api/search
+
+    llm:
+      path: kv/primarch/app/llm/*
+      owner: llm-runtime
+      description: "LLM model credentials and API keys"
+      examples:
+        - kv/primarch/app/llm/openai
+        - kv/primarch/app/llm/anthropic
+        - kv/primarch/app/llm/local-auth
+
+    vector:
+      path: kv/primarch/app/vector/*
+      owner: vector-client
+      description: "Vector store authentication"
+      examples:
+        - kv/primarch/app/vector/qdrant
+        - kv/primarch/app/vector/pgvector
+
+  infrastructure:
+    proxy:
+      path: kv/primarch/infra/proxy/*
+      owner: gateway
+      description: "Proxy and gateway authentication"
+      examples:
+        - kv/primarch/infra/proxy/egress-auth
+        - kv/primarch/infra/proxy/gateway-jwt
+
+    observability:
+      path: kv/primarch/infra/observability/*
+      owner: telemetry
+      description: "Telemetry and monitoring credentials"
+      examples:
+        - kv/primarch/infra/observability/otel-api
+        - kv/primarch/infra/observability/metrics-push
+
+policies:
+  - "Each path owner has read-only access to their designated paths"
+  - "Write access requires elevated privileges through break-glass procedure"
+  - "Cross-service access requires explicit policy attachment"

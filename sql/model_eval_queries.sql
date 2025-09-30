@@ -1,0 +1,8 @@
+-- Model Evaluation Reporting (documentation only)
+-- 1) Win-rate by model/version
+-- SELECT model_id, version, win_rate FROM model_eval_runs ORDER BY ts DESC;
+-- 2) Shadow compare deltas
+-- SELECT metric, candidate_value, baseline_value, (candidate_value-baseline_value) AS delta
+-- FROM model_shadow_compare WHERE window='last_48h';
+-- 3) Cost-per-request trend
+-- SELECT model_id, ts::date d, avg(cost_per_req) FROM model_perf_cost GROUP BY 1,2 ORDER BY 2 DESC;

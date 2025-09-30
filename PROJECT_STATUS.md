@@ -1,0 +1,41 @@
+# Primarch — Project Status (MVP)
+Roles: Operator=iii, Executor=Claude (server)
+
+- [x] Chapter 0 — Scope, Roles, Source-of-Truth
+- [x] Chapter 1 — API Gateway & Orchestrator chosen and documented
+- [x] Chapter 2 — DB-as-Memory (Postgres schema), retention & deletion runbooks
+- [x] Chapter 3 — Optional Vectors (Qdrant) decision & indexing policy
+- [x] Chapter 4 — On-prem LLM Runtime (baseline model, context, quant, limits)
+- [x] Chapter 5 — Tool & API Registry (endpoints, auth, rate limits, fallbacks)
+- [x] Chapter 6 — Sandbox & Proxy Policy (network-off default, allow-list)
+- [x] Chapter 7 — Observability (OTel tail-sampling, golden dashboards, alerts)
+- [x] Chapter 8 — Secrets & IAM (Vault paths, roles, rotations, break-glass)
+- [x] Chapter 9 — Compliance (retention matrix, DPIA/AI-Act post-market plan)
+- [x] Chapter 10 — CI/CD (canary, auto-rollback, SBOM/signing/provenance)
+- [x] Chapter 11 — Runbooks (incident, brownout/load-shedding, drift/bias)
+- [x] Chapter 12 — Cost Guardrails (per-tenant budgets, throttles, downgrade)
+- [x] Chapter 13 — Readiness Gates (perf & quality thresholds, shadow/canary)
+- [x] Chapter 14 — Risks & Assumptions (owner, mitigations, review cadence)- [x] Chapter 15 — Backups & DR (backup/restore & game days)
+- [x] Chapter 16 — Data Lineage & Quality Gates (contracts, checks, alerts)
+- [x] Chapter 17 — Safety Red-Teaming & Eval Harness
+- [x] Chapter 18 — Feature Flags & Experimentation (A/B + Shadow)
+- [x] Chapter 19 — Go-Live Cutover & Day-2 Ops
+- [x] Chapter 20 — Post-Launch Analytics & Learnings
+- [x] Chapter 21 — Customer Feedback & Support Loops
+- [x] Chapter 22 — User Onboarding & Docs
+- [x] Chapter 23 — Multitenancy & RBAC (org>project>env>role model)
+- [x] Chapter 24 — Billing & Usage Tracking (5 meters, pricing tiers)
+- [x] Chapter 25 — Data Portability & Offboarding (export SLA)
+- [x] Chapter 26 — Prompt Firewall & Persona SDK (FRANK, PromptGuard v2)
+- [x] Chapter 27 — Developer SDKs & CLI (Python, JavaScript, CLI specifications)
+- [x] Chapter 28 — FRANK Persona Assets (ingested, checksummed, readiness wired)
+- [x] Chapter 29 — Admin Console & Operator Dashboard
+- [x] Chapter 30 — Data Residency & Regionalization
+- [x] Chapter 31 — Immutable Audit & Forensics
+- [x] Chapter 32 — Tenant Audit & DSR Portal
+- [x] Chapter 34 — Vulnerability Management & Patch Cadence (SLAs, CI/CD gates)
+- [x] Chapter 35 — Model Registry & Lifecycle (exp→shadow→canary→prod stages)
+- [x] Chapter 36 — Caching & Performance Acceleration (layered cache, PII-aware)
+- [x] Chapter 37 — Chaos Engineering & Fault Injection (controlled failures, resilience)
+- [x] Chapter 38 — Model Routing & Batching Optimization [x]
+- [x] Chapter 33 — SIEM & Threat Detection Bridge

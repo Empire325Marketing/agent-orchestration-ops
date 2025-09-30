@@ -1,0 +1,17 @@
+# Data Classes & Residency Rules
+classes:
+  hr_pii:         { pii: true,  retention_class: hr_records,   residency: strict }
+  customer_pii:   { pii: true,  retention_class: customer,     residency: strict }
+  tickets:        { pii: maybe, retention_class: support,      residency: strict }
+  messages:       { pii: maybe, retention_class: product,      residency: strict }
+  tool_calls:     { pii: false, retention_class: product,      residency: flexible }
+  embeddings:     { pii: false, retention_class: product,      residency: flexible }
+  telemetry:      { pii: false, retention_class: telemetry,    residency: flexible }
+rules:
+  strict:
+    at_rest: in_region_only
+    egress: region_proxy_only
+    dlq_on_mismatch: true
+  flexible:
+    at_rest: region_local_preferred
+    egress: allow_if_non_pii_and_compliant

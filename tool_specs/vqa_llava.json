@@ -1,0 +1,387 @@
+{
+  "name": "llava_document_vqa",
+  "version": "1.6.0",
+  "description": "LLaVA-OneVision model for document visual question answering and analysis",
+  "type": "vqa",
+  "category": "vision_language",
+  "provider": "llava-vl",
+  "license": "Apache-2.0", 
+  "commercial_use": true,
+  "model_variants": {
+    "llava_onevision_8b": {
+      "model_id": "llava-hf/llava-onevision-qwen2-7b-ov-hf",
+      "parameters": "8B",
+      "memory_requirements_gb": 16,
+      "recommended": true
+    },
+    "llava_onevision_72b": {
+      "model_id": "llava-hf/llava-onevision-qwen2-72b-ov-hf", 
+      "parameters": "72B",
+      "memory_requirements_gb": 80,
+      "recommended": false
+    }
+  },
+  "endpoints": {
+    "answer_question": {
+      "path": "/vqa/question",
+      "method": "POST",
+      "timeout_ms": 15000,
+      "max_retries": 2,
+      "rate_limit": {
+        "requests_per_minute": 120,
+        "burst_size": 20
+      }
+    },
+    "batch_vqa": {
+      "path": "/vqa/batch",
+      "method": "POST",
+      "timeout_ms": 60000,
+      "max_retries": 2,
+      "rate_limit": {
+        "requests_per_minute": 30,
+        "burst_size": 5
+      }
+    },
+    "document_analysis": {
+      "path": "/vqa/analyze",
+      "method": "POST", 
+      "timeout_ms": 30000,
+      "max_retries": 2,
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "burst_size": 10
+      }
+    },
+    "health": {
+      "path": "/vqa/health",
+      "method": "GET",
+      "timeout_ms": 5000,
+      "max_retries": 1
+    }
+  },
+  "input_schema": {
+    "answer_question": {
+      "type": "object",
+      "required": ["image", "question"],
+      "properties": {
+        "image": {
+          "type": "string",
+          "format": "base64",
+          "description": "Base64 encoded document image"
+        },
+        "image_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Alternative to image - URL of document image"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 500,
+          "description": "Natural language question about the document"
+        },
+        "context": {
+          "type": "string",
+          "maxLength": 2000,
+          "description": "Optional additional context about the document"
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 50,
+          "maximum": 2048,
+          "default": 512,
+          "description": "Maximum tokens in response"
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "default": 0.7,
+          "description": "Sampling temperature for response generation"
+        },
+        "structured_output": {
+          "type": "boolean",
+          "default": false,
+          "description": "Request structured JSON response when possible"
+        },
+        "confidence_threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.8,
+          "description": "Minimum confidence threshold for responses"
+        }
+      }
+    },
+    "document_analysis": {
+      "type": "object",
+      "required": ["image"],
+      "properties": {
+        "image": {
+          "type": "string",
+          "format": "base64",
+          "description": "Base64 encoded document image"
+        },
+        "analysis_type": {
+          "type": "string",
+          "enum": ["summary", "extraction", "classification", "qa_pairs"],
+          "default": "summary",
+          "description": "Type of document analysis to perform"
+        },
+        "extract_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Specific fields to extract (for extraction analysis)"
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "description": "Multiple questions for batch Q&A"
+        }
+      }
+    }
+  },
+  "output_schema": {
+    "answer_question": {
+      "type": "object",
+      "required": ["success", "answer"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Processing success status"
+        },
+        "answer": {
+          "type": "string",
+          "description": "Generated answer to the question"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Model confidence in the answer"
+        },
+        "reasoning": {
+          "type": "string",
+          "description": "Optional explanation of the reasoning process"
+        },
+        "extracted_elements": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["text", "number", "date", "entity"]
+              },
+              "value": {
+                "type": "string"
+              },
+              "bbox": {
+                "type": "array",
+                "items": {"type": "number"},
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "[x1, y1, x2, y2] bounding box"
+              }
+            }
+          }
+        },
+        "processing_time_ms": {
+          "type": "number",
+          "description": "Processing duration in milliseconds"
+        },
+        "token_usage": {
+          "type": "object",
+          "properties": {
+            "input_tokens": {"type": "integer"},
+            "output_tokens": {"type": "integer"},
+            "total_tokens": {"type": "integer"}
+          }
+        },
+        "error": {
+          "type": "string",
+          "description": "Error message if success=false"
+        }
+      }
+    },
+    "document_analysis": {
+      "type": "object",
+      "required": ["success", "analysis"],
+      "properties": {
+        "success": {
+          "type": "boolean"
+        },
+        "analysis": {
+          "type": "object",
+          "properties": {
+            "document_type": {
+              "type": "string",
+              "enum": ["invoice", "receipt", "form", "contract", "report", "other"]
+            },
+            "summary": {
+              "type": "string",
+              "description": "Document summary"
+            },
+            "key_information": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            },
+            "qa_pairs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "question": {"type": "string"},
+                  "answer": {"type": "string"},
+                  "confidence": {"type": "number"}
+                }
+              }
+            },
+            "structure_detected": {
+              "type": "object",
+              "properties": {
+                "tables": {"type": "integer"},
+                "images": {"type": "integer"},
+                "text_blocks": {"type": "integer"},
+                "forms": {"type": "integer"}
+              }
+            }
+          }
+        },
+        "processing_time_ms": {"type": "number"},
+        "token_usage": {
+          "type": "object",
+          "properties": {
+            "input_tokens": {"type": "integer"},
+            "output_tokens": {"type": "integer"}
+          }
+        }
+      }
+    }
+  },
+  "resource_requirements": {
+    "gpu": {
+      "memory_gb": 16,
+      "compute_capability": "7.0+",
+      "required": true
+    },
+    "cpu": {
+      "cores": 8,
+      "memory_gb": 32
+    },
+    "disk_space_gb": 20,
+    "network": {
+      "bandwidth_mbps": 200,
+      "concurrent_connections": 20
+    }
+  },
+  "performance_metrics": {
+    "accuracy": {
+      "docvqa_score": 0.914,
+      "invoice_qa": 0.89,
+      "general_vqa": 0.85
+    },
+    "latency": {
+      "p50_ms": 1200,
+      "p95_ms": 2300,
+      "p99_ms": 4500
+    },
+    "throughput": {
+      "questions_per_minute": 45,
+      "batch_documents_per_hour": 180
+    }
+  },
+  "cost_estimates": {
+    "per_question": 0.012,
+    "per_document_analysis": 0.045,
+    "monthly_base_cost": 450,
+    "scaling_factor": 1.5,
+    "token_cost": {
+      "input_per_1k": 0.003,
+      "output_per_1k": 0.012
+    }
+  },
+  "security": {
+    "pii_flags": true,
+    "content_filtering": true,
+    "input_validation": true,
+    "output_sanitization": true,
+    "supported_formats": ["jpg", "jpeg", "png", "bmp", "tiff", "pdf"],
+    "max_file_size_mb": 25,
+    "max_resolution": "4096x4096",
+    "content_policy": "strict",
+    "privacy_controls": {
+      "no_data_retention": true,
+      "anonymize_responses": false,
+      "audit_logging": true
+    }
+  },
+  "quality_controls": {
+    "hallucination_detection": true,
+    "confidence_calibration": true,
+    "response_validation": true,
+    "fact_checking": false,
+    "source_attribution": true
+  },
+  "monitoring": {
+    "metrics": {
+      "vqa_requests_total": "counter",
+      "processing_duration_seconds": "histogram",
+      "errors_total": "counter", 
+      "confidence_scores": "histogram",
+      "token_usage_total": "counter",
+      "active_requests": "gauge"
+    },
+    "health_checks": {
+      "liveness": "/vqa/health",
+      "readiness": "/vqa/ready",
+      "model_health": "/vqa/model/status",
+      "interval_seconds": 30
+    },
+    "alerts": {
+      "high_error_rate": ">3%",
+      "high_latency": "p95 >5s",
+      "low_confidence": "avg <0.7",
+      "gpu_memory_high": ">90%",
+      "hallucination_rate": ">5%"
+    }
+  },
+  "deployment": {
+    "container_image": "ghcr.io/llava-vl/llava-onevision:1.6-cuda12.1",
+    "model_loading": {
+      "lazy_loading": true,
+      "quantization": "fp16",
+      "optimization": "tensorrt"
+    },
+    "scaling": {
+      "min_replicas": 2,
+      "max_replicas": 8,
+      "target_gpu_utilization": 75
+    },
+    "environment_variables": {
+      "MODEL_PATH": "/models/llava-onevision-8b",
+      "GPU_MEMORY_FRACTION": "0.9",
+      "MAX_BATCH_SIZE": "4",
+      "ENABLE_TENSORRT": "true"
+    }
+  },
+  "integration": {
+    "supports_streaming": true,
+    "api_compatibility": "openai",
+    "webhook_support": true,
+    "batch_processing": true
+  },
+  "fallback": {
+    "primary": "qwen_vl_7b", 
+    "secondary": "ocr_plus_llm",
+    "conditions": ["gpu_unavailable", "model_failure", "high_latency"],
+    "timeout_ms": 8000
+  }
+}

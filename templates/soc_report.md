@@ -1,0 +1,12 @@
+# SOC Incident Report — {{incident_id}}
+- Opened: {{opened_utc}}  Closed: {{closed_utc}}
+- Severity: {{sev}}  Tenants: {{tenants}}  Regions: {{regions}}
+- Summary: {{summary}}
+- Timeline:
+  - {{t1}} — {{event1}}
+  - {{t2}} — {{event2}}
+- Evidence: audit refs {{trace_ids}}
+- Containment: {{containment}}
+- Eradication: {{eradication}}
+- Recovery: {{recovery}}
+- Follow-ups: {{tasks}}

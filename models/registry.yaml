@@ -1,0 +1,44 @@
+version: v1
+models:
+  - id: llama-3.1-8b-instruct
+    family: llama
+    provider: vLLM
+    quant: AWQ
+    context_limit: 32768
+    default_routes: ["/v1/assist"]
+    pools_allowed: ["A-5090","B-5090","C-3090"]
+    stage: "production"
+    owners: ["platform-ml"]
+    provenance:
+      sbom_ref: "artifacts/sbom/llama31-8b.json"
+      image_digest: "sha256:<fill-me>"
+  - id: llama-3.1-8b-instruct-shadow
+    family: llama
+    provider: vLLM
+    quant: AWQ
+    context_limit: 32768
+    pools_allowed: ["A-5090","B-5090","C-3090"]
+    stage: "shadow"
+    owners: ["platform-ml"]
+policy:
+  promotion_requirements:
+    eval:
+      win_rate: ">=0.90"
+      regression: "<=5%"
+    safety:
+      jailbreak_rate: "=0"
+      pii_leak_rate: "=0"
+      toxicity_rate: "<=0.01"
+    perf:
+      api_p95_ms: "<=950"
+      llm_short_p95_ms: "<=1500"
+      llm_long_p95_ms: "<=3500"
+      error_rate_factor: "<=1.25x baseline"
+    cost:
+      projected_cost_per_req: "within plan"
+      tenant_headroom_pct: ">=20"
+    coverage:
+      trace_coverage: ">=0.95 (1h)"
+  rollback:
+    triggers: ["burn_30m>2x","p95>+20%","error>1.5x","safety_breach","cost_headroom<20%"]
+    action: "immediate rollback; append DECISIONS.log; notify on-call"

@@ -1,0 +1,339 @@
+# Prometheus Recording Rules and Alerts for Model Routing & Batching
+# Chapter 38 - Model Routing & Batching Optimization
+# Version: 1.0
+
+groups:
+- name: routing_recording_rules
+  interval: 15s
+  rules:
+  # Core routing metrics - 5 minute rates
+  - record: routing:requests:rate5m
+    expr: sum(rate(router_requests_total[5m])) by (model, provider, route_tier)
+    labels:
+      component: router
+      
+  - record: routing:errors:rate5m
+    expr: sum(rate(router_errors_total[5m])) by (model, provider, reason, route_tier)
+    labels:
+      component: router
+      
+  - record: routing:error_rate:5m
+    expr: sum(rate(router_errors_total[5m])) / sum(rate(router_requests_total[5m]))
+    labels:
+      component: router
+      
+  - record: routing:fallback:rate5m
+    expr: sum(rate(router_fallback_total[5m])) / sum(rate(router_requests_total[5m]))
+    labels:
+      component: router
+      
+  # Latency percentiles
+  - record: routing:latency:p50:5m
+    expr: histogram_quantile(0.50, sum(rate(router_latency_seconds_bucket[5m])) by (le))
+    labels:
+      component: router
+      
+  - record: routing:latency:p95:5m
+    expr: histogram_quantile(0.95, sum(rate(router_latency_seconds_bucket[5m])) by (le))
+    labels:
+      component: router
+      
+  - record: routing:latency:p99:5m
+    expr: histogram_quantile(0.99, sum(rate(router_latency_seconds_bucket[5m])) by (le))
+    labels:
+      component: router
+
+  # Provider distribution metrics
+  - record: routing:provider_share:5m
+    expr: |
+      sum(rate(router_requests_total[5m])) by (provider) / 
+      sum(rate(router_requests_total[5m]))
+    labels:
+      component: router
+      
+  - record: routing:provider_weight_deviation:5m
+    expr: |
+      abs(
+        (sum(rate(router_requests_total[5m])) by (provider) / sum(rate(router_requests_total[5m]))) -
+        on(provider) group_left() router_configured_weight
+      ) / on(provider) group_left() router_configured_weight
+    labels:
+      component: router
+
+  # vLLM performance metrics
+  - record: vllm:batch_utilization:p95:5m
+    expr: histogram_quantile(0.95, sum(rate(vllm_batch_utilization_bucket[5m])) by (le, gpu_pool))
+    labels:
+      component: vllm
+      
+  - record: vllm:kv_cache_hit_rate:p95:5m
+    expr: histogram_quantile(0.95, sum(rate(vllm_kv_cache_hit_rate_bucket[5m])) by (le))
+    labels:
+      component: vllm
+      
+  - record: vllm:queue_depth:max:5m
+    expr: max_over_time(vllm_queue_depth[5m]) by (gpu_pool)
+    labels:
+      component: vllm
+      
+  - record: vllm:gpu_memory_utilization:avg:5m
+    expr: avg_over_time(vllm_gpu_memory_utilization[5m]) by (gpu_pool, gpu_id)
+    labels:
+      component: vllm
+
+  # Batch processing metrics
+  - record: batch:queue_depth:max:5m
+    expr: max_over_time(openai_batch_queue_depth[5m]) by (profile)
+    labels:
+      component: batch
+      
+  - record: batch:completion_rate:5m
+    expr: sum(rate(openai_batch_completed_total[5m])) by (profile, status)
+    labels:
+      component: batch
+      
+  - record: batch:success_rate:24h
+    expr: |
+      sum(rate(openai_batch_completed_total{status="success"}[24h])) by (profile) /
+      sum(rate(openai_batch_completed_total[24h])) by (profile)
+    labels:
+      component: batch
+
+  # Cost and billing metrics
+  - record: billing:cost_per_1k_tokens:5m
+    expr: |
+      (sum(rate(billing_cost_total[5m])) by (provider, model, route_tier) / 
+       sum(rate(billing_tokens_output_total[5m])) by (provider, model, route_tier)) * 1000
+    labels:
+      component: billing
+      
+  - record: billing:hourly_spend:1h
+    expr: sum(increase(billing_cost_total[1h])) by (provider, cost_center)
+    labels:
+      component: billing
+      
+  - record: billing:attribution_coverage:5m
+    expr: |
+      sum(rate(router_requests_attributed_total[5m])) / 
+      sum(rate(router_requests_total[5m]))
+    labels:
+      component: billing
+
+- name: routing_alerts
+  rules:
+  # Critical alerts - immediate response required
+  - alert: RouterHighErrorRate
+    expr: routing:error_rate:5m > 0.01
+    for: 10m
+    labels:
+      severity: critical
+      component: router
+      runbook: router-outage
+    annotations:
+      summary: "Model router error rate above threshold"
+      description: "Router error rate is {{ $value | humanizePercentage }} over the last 10 minutes (threshold: 1%)"
+      dashboard_url: "https://grafana.primarch.internal/d/routing/model-routing-dashboard"
+      
+  - alert: RouterDown
+    expr: up{job="litellm-router"} == 0
+    for: 2m
+    labels:
+      severity: critical
+      component: router
+      runbook: router-outage
+    annotations:
+      summary: "Model router is down"
+      description: "LiteLLM router instance {{ $labels.instance }} is not responding to health checks"
+      
+  - alert: VLLMEngineDown
+    expr: up{job="vllm-engine"} == 0
+    for: 5m
+    labels:
+      severity: critical
+      component: vllm
+      runbook: router-outage
+    annotations:
+      summary: "vLLM engine is down"
+      description: "vLLM engine on {{ $labels.gpu_pool }} is not responding (instance: {{ $labels.instance }})"
+
+  # Warning alerts - investigation required
+  - alert: RoutingFallbackExcessive
+    expr: routing:fallback:rate5m > 0.20
+    for: 15m
+    labels:
+      severity: warning
+      component: router
+    annotations:
+      summary: "Excessive fallback usage detected"
+      description: "Fallback rate is {{ $value | humanizePercentage }} over 15 minutes - indicates provider instability or weight misconfiguration"
+      
+  - alert: ProviderImbalance
+    expr: routing:provider_share:5m > 0.80
+    for: 20m
+    labels:
+      severity: warning
+      component: router
+    annotations:
+      summary: "Single provider handling majority of traffic"
+      description: "Provider {{ $labels.provider }} is handling {{ $value | humanizePercentage }} of traffic for 20+ minutes"
+      
+  - alert: VLLMBatchUnderutilized
+    expr: vllm:batch_utilization:p95:5m < 0.65
+    for: 20m
+    labels:
+      severity: warning
+      component: vllm
+    annotations:
+      summary: "vLLM batch utilization low"
+      description: "GPU pool {{ $labels.gpu_pool }} batch utilization is {{ $value | humanizePercentage }} (threshold: 65%)"
+      
+  - alert: KVCacheHitRateLow  
+    expr: vllm:kv_cache_hit_rate:p95:5m < 0.80
+    for: 15m
+    labels:
+      severity: warning
+      component: vllm
+    annotations:
+      summary: "KV cache hit rate below optimal"
+      description: "KV cache hit rate is {{ $value | humanizePercentage }} - may indicate cache sizing issues or workload pattern changes"
+
+  - alert: RouterLatencyHigh
+    expr: routing:latency:p95:5m > 0.15
+    for: 10m
+    labels:
+      severity: warning
+      component: router
+    annotations:
+      summary: "Router latency elevated"
+      description: "P95 routing latency is {{ $value }}s for 10+ minutes (threshold: 150ms)"
+
+  # Batch processing alerts
+  - alert: BatchQueueStuck
+    expr: batch:queue_depth:max:5m > 0 and increase(batch:queue_depth:max:5m[2h]) >= 0
+    for: 2h
+    labels:
+      severity: critical
+      component: batch
+      runbook: batch-failure
+    annotations:
+      summary: "OpenAI batch queue not draining"
+      description: "Batch queue for profile {{ $labels.profile }} has been stuck at {{ $value }} items for 2+ hours"
+      
+  - alert: BatchSuccessRateLow
+    expr: batch:success_rate:24h < 0.95
+    for: 1h
+    labels:
+      severity: warning
+      component: batch
+      runbook: batch-failure
+    annotations:
+      summary: "Batch processing success rate low"
+      description: "Batch success rate for {{ $labels.profile }} is {{ $value | humanizePercentage }} over 24h (threshold: 95%)"
+
+  # Cost and billing alerts
+  - alert: CostAnomalyDetected
+    expr: |
+      (
+        billing:hourly_spend:1h - 
+        avg_over_time(billing:hourly_spend:1h[7d] offset 1d)
+      ) / avg_over_time(billing:hourly_spend:1h[7d] offset 1d) > 0.50
+    for: 30m
+    labels:
+      severity: warning
+      component: billing
+    annotations:
+      summary: "Unusual cost spike detected"
+      description: "Hourly spend for {{ $labels.provider }} is {{ $value | humanizePercentage }} above 7-day average"
+      
+  - alert: CostAttributionGap
+    expr: billing:attribution_coverage:5m < 0.95
+    for: 20m
+    labels:
+      severity: warning
+      component: billing
+    annotations:
+      summary: "Cost attribution coverage low"
+      description: "Only {{ $value | humanizePercentage }} of requests have proper cost attribution (threshold: 95%)"
+
+  # GPU and hardware alerts  
+  - alert: GPUMemoryUtilizationHigh
+    expr: vllm:gpu_memory_utilization:avg:5m > 0.90
+    for: 10m
+    labels:
+      severity: warning
+      component: vllm
+    annotations:
+      summary: "GPU memory utilization high"
+      description: "GPU {{ $labels.gpu_id }} on pool {{ $labels.gpu_pool }} memory utilization is {{ $value | humanizePercentage }}"
+      
+  - alert: GPUMemoryUtilizationLow
+    expr: vllm:gpu_memory_utilization:avg:5m < 0.70
+    for: 30m
+    labels:
+      severity: info
+      component: vllm
+    annotations:
+      summary: "GPU memory utilization low"
+      description: "GPU {{ $labels.gpu_id }} on pool {{ $labels.gpu_pool }} memory utilization is only {{ $value | humanizePercentage }} - potential optimization opportunity"
+
+  # Circuit breaker and health alerts
+  - alert: CircuitBreakerOpen
+    expr: router_circuit_breaker_state{state="open"} == 1
+    for: 1m
+    labels:
+      severity: warning
+      component: router
+    annotations:
+      summary: "Circuit breaker opened for provider"
+      description: "Circuit breaker is OPEN for provider {{ $labels.provider }} due to {{ $labels.reason }}"
+      
+  - alert: HealthCheckFailing
+    expr: router_health_check_success == 0
+    for: 5m
+    labels:
+      severity: warning
+      component: router
+    annotations:
+      summary: "Provider health check failing"
+      description: "Health checks for {{ $labels.provider }} have been failing for 5+ minutes"
+
+  # Readiness gate alerts
+  - alert: ReadinessGateFailed
+    expr: routing_readiness_gate_status == 0
+    for: 2m
+    labels:
+      severity: critical
+      component: router
+    annotations:
+      summary: "Routing readiness gate failed"
+      description: "Routing readiness gate has failed: {{ $labels.failure_reason }} - blocking deployments"
+      action_required: "Run appropriate runbook and re-test gate before deployment"
+
+- name: routing_capacity_planning
+  interval: 5m
+  rules:
+  # Capacity and growth metrics for planning
+  - record: capacity:request_growth_rate:7d
+    expr: |
+      (
+        sum(rate(router_requests_total[1h])) -
+        sum(rate(router_requests_total[1h] offset 7d))
+      ) / sum(rate(router_requests_total[1h] offset 7d))
+    labels:
+      component: capacity
+      
+  - record: capacity:token_growth_rate:7d
+    expr: |
+      (
+        sum(rate(billing_tokens_total[1h])) -
+        sum(rate(billing_tokens_total[1h] offset 7d))  
+      ) / sum(rate(billing_tokens_total[1h] offset 7d))
+    labels:
+      component: capacity
+      
+  - record: capacity:gpu_utilization_trend:24h
+    expr: |
+      avg_over_time(vllm:gpu_memory_utilization:avg:5m[24h]) by (gpu_pool) -
+      avg_over_time(vllm:gpu_memory_utilization:avg:5m[24h] offset 7d) by (gpu_pool)
+    labels:
+      component: capacity

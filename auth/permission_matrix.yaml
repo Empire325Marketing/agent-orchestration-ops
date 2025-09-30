@@ -1,0 +1,43 @@
+# Permission Matrix (MVP)
+version: 1
+actions:
+  read: "View resources, dashboards, logs"
+  write: "Create/modify resources, run tools" 
+  admin: "Manage configurations, policies"
+  manage_keys: "Rotate secrets, API keys"
+  run_jobs: "Execute background tasks, deploys"
+  view_costs: "Access billing, usage data"
+  view_safety: "See safety test results, violations"
+  manage_roles: "Grant/revoke user permissions"
+
+roles:
+  owner:
+    description: "Full org control including billing and user management"
+    permissions: ["read", "write", "admin", "manage_keys", "run_jobs", "view_costs", "view_safety", "manage_roles"]
+    resource_scopes: ["org:*", "project:*", "env:*", "dataset:*"]
+  
+  admin:
+    description: "Technical administration without billing access"
+    permissions: ["read", "write", "admin", "manage_keys", "run_jobs", "view_safety"]
+    resource_scopes: ["project:*", "env:*", "dataset:*"]
+  
+  developer:
+    description: "Development and deployment to non-prod environments"
+    permissions: ["read", "write", "run_jobs"]
+    resource_scopes: ["project:assigned", "env:dev,staging", "dataset:project"]
+  
+  analyst:
+    description: "Read-only access to data and analytics"
+    permissions: ["read", "view_costs"]
+    resource_scopes: ["project:assigned", "env:*", "dataset:project"]
+  
+  viewer:
+    description: "Basic read-only access"
+    permissions: ["read"]
+    resource_scopes: ["project:assigned", "env:dev,staging"]
+
+resource_types:
+  org: "Organization-level resources"
+  project: "Project-scoped resources" 
+  env: "Environment-specific resources"
+  dataset: "Data tables and lineage"

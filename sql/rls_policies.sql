@@ -1,0 +1,96 @@
+-- Row Level Security Policies (Documentation Only - DO NOT EXECUTE)
+-- These are example RLS policies for multi-tenant data isolation
+
+-- Enable RLS on core tables
+-- ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE tool_calls ENABLE ROW LEVEL SECURITY; 
+-- ALTER TABLE embeddings ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+
+-- Helper function to extract JWT claims (would be implemented in production)
+-- CREATE OR REPLACE FUNCTION current_jwt_claims() RETURNS jsonb AS $$
+-- BEGIN
+--   RETURN current_setting('app.jwt.claims', true)::jsonb;
+-- END;
+-- $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Messages table RLS policies
+-- CREATE POLICY messages_org_isolation ON messages
+--   FOR ALL TO authenticated
+--   USING (
+--     org_id = (current_jwt_claims() ->> 'org_id')
+--     AND (
+--       -- Owners see everything in org
+--       'owner' = ANY(string_to_array(current_jwt_claims() ->> 'roles', ','))
+--       OR
+--       -- Admins see everything in their projects
+--       ('admin' = ANY(string_to_array(current_jwt_claims() ->> 'roles', ','))
+--        AND project_id = ANY(string_to_array(current_jwt_claims() ->> 'project_ids', ',')))
+--       OR  
+--       -- Developers/analysts see only their env and projects
+--       (project_id = ANY(string_to_array(current_jwt_claims() ->> 'project_ids', ','))
+--        AND env = (current_jwt_claims() ->> 'env'))
+--     )
+--     -- Legal hold: if legal_hold=true in JWT, allow reads but block via application logic
+--     AND (deleted_at IS NULL OR 'admin' = ANY(string_to_array(current_jwt_claims() ->> 'roles', ',')))
+--   );
+
+-- Tool calls table RLS policies  
+-- CREATE POLICY tool_calls_project_access ON tool_calls
+--   FOR ALL TO authenticated
+--   USING (
+--     org_id = (current_jwt_claims() ->> 'org_id')
+--     AND project_id = ANY(string_to_array(current_jwt_claims() ->> 'project_ids', ','))
+--     AND (
+--       -- Environment-based access for non-admins
+--       env = (current_jwt_claims() ->> 'env')
+--       OR 'admin' = ANY(string_to_array(current_jwt_claims() ->> 'roles', ','))
+--       OR 'owner' = ANY(string_to_array(current_jwt_claims() ->> 'roles', ','))
+--     )
+--   );
+
+-- Embeddings table RLS policies
+-- CREATE POLICY embeddings_dataset_scope ON embeddings  
+--   FOR ALL TO authenticated
+--   USING (
+--     org_id = (current_jwt_claims() ->> 'org_id')
+--     AND (
+--       -- Project-level access for developers+
+--       project_id = ANY(string_to_array(current_jwt_claims() ->> 'project_ids', ','))
+--       OR 
+--       -- Org-level access for owners
+--       'owner' = ANY(string_to_array(current_jwt_claims() ->> 'roles', ','))
+--     )
+--   );
+
+-- Support tickets RLS policies
+-- CREATE POLICY tickets_org_boundary ON support_tickets
+--   FOR ALL TO authenticated  
+--   USING (
+--     -- Org isolation
+--     customer_org_id = (current_jwt_claims() ->> 'org_id')
+--     AND (
+--       -- Ticket creator or support role
+--       created_by = (current_jwt_claims() ->> 'sub')
+--       OR 'admin' = ANY(string_to_array(current_jwt_claims() ->> 'roles', ','))
+--       OR 'owner' = ANY(string_to_array(current_jwt_claims() ->> 'roles', ','))
+--     )
+--     -- PII protection: redact if pii_flag=true and insufficient permissions
+--     AND (
+--       pii_flag = false 
+--       OR 'admin' = ANY(string_to_array(current_jwt_claims() ->> 'roles', ','))
+--     )
+--   );
+
+-- Deny-by-default fallback policy
+-- CREATE POLICY deny_all_fallback ON messages FOR ALL TO authenticated USING (false);
+-- CREATE POLICY deny_all_fallback ON tool_calls FOR ALL TO authenticated USING (false);
+-- CREATE POLICY deny_all_fallback ON embeddings FOR ALL TO authenticated USING (false);
+-- CREATE POLICY deny_all_fallback ON support_tickets FOR ALL TO authenticated USING (false);
+
+-- Legal hold enforcement (application-level checks)
+-- When legal_hold=true in JWT:
+-- - SELECT: allowed per RLS policies above
+-- - UPDATE: allowed for metadata only (not content)
+-- - DELETE: blocked in application middleware
+-- - Audit: all operations logged with legal_hold flag

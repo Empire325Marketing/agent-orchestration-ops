@@ -1,0 +1,33 @@
+# Triage Matrix (MVP)
+version: 1
+severity:
+  P1:
+    definition: "Critical impact; outage or data risk; many users"
+    initial_response: 15m
+    resolution_target: 4h
+    escalate_to_incident: true
+  P2:
+    definition: "High impact; degraded core path; some users"
+    initial_response: 1h
+    resolution_target: 1bd
+    escalate_to_incident: conditional
+  P3:
+    definition: "Moderate impact; workaround exists"
+    initial_response: 1bd
+    resolution_target: 5bd
+    escalate_to_incident: false
+  P4:
+    definition: "Low impact; docs/UX request"
+    initial_response: 2bd
+    resolution_target: backlog
+priority_rules:
+  - if: "safety_violation == true"
+    set_severity: P1
+  - if: "revenue_at_risk == true"
+    bump: +1
+  - if: "workaround_available == true"
+    bump: -1
+routing:
+  safety: ["jailbreak","pii","toxicity"]
+  platform: ["latency","error","quota","cost"]
+  product: ["feature","usability","docs"]

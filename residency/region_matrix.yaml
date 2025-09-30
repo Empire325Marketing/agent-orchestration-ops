@@ -1,0 +1,40 @@
+# Region Residency Matrix (MVP: US, EU)
+regions:
+  us:
+    description: United States (primary)
+    vault_namespace: primarch-us
+    db_cluster: pg-us
+    backups_bucket: backups-us
+    exports_delivery: s3-us
+    egress_allowlist_ref: proxy_allowlist.txt
+    cross_border_transfer_mechanism: N/A (PII not transferred by default)
+  eu:
+    description: European Union (primary)
+    vault_namespace: primarch-eu
+    db_cluster: pg-eu
+    backups_bucket: backups-eu
+    exports_delivery: s3-eu
+    egress_allowlist_ref: proxy_allowlist.txt
+    cross_border_transfer_mechanism: SCCs (only for non-PII, exceptional)
+
+classes:
+  hr_pii:
+    residency: strict
+    allowed_processing_regions: [match_tenant_region]
+    backups: in_region_only
+    encryption_keys: region_scoped
+  customer_pii:
+    residency: strict
+    allowed_processing_regions: [match_tenant_region]
+    backups: in_region_only
+    encryption_keys: region_scoped
+  telemetry_non_pii:
+    residency: flexible
+    allowed_processing_regions: [us, eu]
+    backups: region_local_preferred
+    encryption_keys: region_scoped
+
+controls:
+  cross_region_event: deny_and_alert
+  export_default_window_days: 14
+  legal_hold_residency_preserved: true

@@ -1,0 +1,216 @@
+# Prometheus metrics configuration for Primarch Tool Adapter (DW-01) and Speech I/O (DW-03)
+
+# Tool Adapter Core Metrics
+groups:
+  - name: primarch_tool_adapter_core
+    interval: 15s
+    rules:
+      # Tool execution success rate
+      - record: primarch:tool_execution_success_rate
+        expr: |
+          (
+            rate(primarch_tool_executions_total{status="success"}[5m]) /
+            rate(primarch_tool_executions_total[5m])
+          ) * 100
+
+      # Tool execution error rate by tool
+      - record: primarch:tool_execution_error_rate_by_tool
+        expr: |
+          (
+            rate(primarch_tool_executions_total{status!="success"}[5m]) /
+            rate(primarch_tool_executions_total[5m])
+          ) * 100
+
+      # Tool execution latency percentiles
+      - record: primarch:tool_execution_duration_p95
+        expr: |
+          histogram_quantile(0.95, rate(primarch_tool_execution_duration_seconds_bucket[5m]))
+
+      - record: primarch:tool_execution_duration_p99
+        expr: |
+          histogram_quantile(0.99, rate(primarch_tool_execution_duration_seconds_bucket[5m]))
+
+  - name: primarch_tool_adapter_alerts
+    interval: 30s
+    rules:
+      # High error rate alert
+      - alert: PrimarchToolAdapterHighErrorRate
+        expr: primarch:tool_execution_error_rate_by_tool > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: tool_adapter
+        annotations:
+          summary: "High error rate for tool {{ $labels.tool_name }}"
+          description: "Tool {{ $labels.tool_name }} has error rate {{ $value }}% for tenant {{ $labels.tenant_id }}"
+
+      # High latency alert
+      - alert: PrimarchToolAdapterHighLatency
+        expr: primarch:tool_execution_duration_p95 > 10
+        for: 1m
+        labels:
+          severity: critical
+          component: tool_adapter
+        annotations:
+          summary: "High latency for tool {{ $labels.tool_name }}"
+          description: "Tool {{ $labels.tool_name }} P95 latency is {{ $value }}s for tenant {{ $labels.tenant_id }}"
+
+      # Registry reload failures
+      - alert: PrimarchToolRegistryReloadFailure
+        expr: increase(primarch_tool_registry_reload_total{status="failure"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          component: tool_adapter
+        annotations:
+          summary: "Tool registry reload failed"
+          description: "Tool registry failed to reload {{ $value }} times in the last 5 minutes"
+
+      # Too many active executions
+      - alert: PrimarchToolAdapterOverload
+        expr: sum(primarch_active_tool_executions) > 100
+        for: 1m
+        labels:
+          severity: warning
+          component: tool_adapter
+        annotations:
+          summary: "Tool adapter overloaded"
+          description: "{{ $value }} active tool executions detected, possible overload"
+
+  - name: primarch_speech_io_core
+    interval: 15s
+    rules:
+      # ASR success rate
+      - record: primarch:speech_asr_success_rate
+        expr: |
+          (
+            rate(primarch_speech_asr_requests_total{status="success"}[5m]) /
+            rate(primarch_speech_asr_requests_total[5m])
+          ) * 100
+
+      # TTS success rate
+      - record: primarch:speech_tts_success_rate
+        expr: |
+          (
+            rate(primarch_speech_tts_requests_total{status="success"}[5m]) /
+            rate(primarch_speech_tts_requests_total[5m])
+          ) * 100
+
+      # ASR processing speed (real-time factor)
+      - record: primarch:speech_asr_realtime_factor
+        expr: |
+          rate(primarch_speech_asr_duration_seconds[5m]) /
+          rate(primarch_speech_asr_audio_duration_seconds[5m])
+
+      # TTS throughput (characters per second)
+      - record: primarch:speech_tts_throughput_cps
+        expr: |
+          rate(primarch_speech_tts_characters_processed_total[5m])
+
+  - name: primarch_speech_io_alerts
+    interval: 30s
+    rules:
+      # ASR high error rate
+      - alert: PrimarchSpeechASRHighErrorRate
+        expr: (100 - primarch:speech_asr_success_rate) > 15
+        for: 2m
+        labels:
+          severity: warning
+          component: speech_asr
+        annotations:
+          summary: "High ASR error rate for language {{ $labels.language }}"
+          description: "ASR error rate is {{ $value }}% for language {{ $labels.language }}"
+
+      # TTS high error rate
+      - alert: PrimarchSpeechTTSHighErrorRate
+        expr: (100 - primarch:speech_tts_success_rate) > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: speech_tts
+        annotations:
+          summary: "High TTS error rate for voice {{ $labels.voice }}"
+          description: "TTS error rate is {{ $value }}% for voice {{ $labels.voice }}"
+
+      # ASR processing too slow
+      - alert: PrimarchSpeechASRSlowProcessing
+        expr: primarch:speech_asr_realtime_factor > 0.5
+        for: 1m
+        labels:
+          severity: warning
+          component: speech_asr
+        annotations:
+          summary: "ASR processing slower than real-time"
+          description: "ASR real-time factor is {{ $value }}, should be < 0.5 for good user experience"
+
+      # TTS latency too high
+      - alert: PrimarchSpeechTTSHighLatency
+        expr: histogram_quantile(0.95, rate(primarch_speech_tts_generation_duration_seconds_bucket[5m])) > 2
+        for: 1m
+        labels:
+          severity: critical
+          component: speech_tts
+        annotations:
+          summary: "High TTS generation latency"
+          description: "TTS P95 latency is {{ $value }}s, exceeds 2s threshold"
+
+# Recording rules for tenant-specific metrics
+  - name: primarch_tenant_tool_usage
+    interval: 60s
+    rules:
+      # Top tools by usage per tenant
+      - record: primarch:tenant_tool_usage_rate
+        expr: |
+          rate(primarch_tool_executions_total[10m])
+
+      # Tool execution time budget per tenant
+      - record: primarch:tenant_tool_execution_time_total
+        expr: |
+          sum by (tenant_id) (
+            rate(primarch_tool_execution_duration_seconds_sum[10m])
+          ) * 60
+
+      # Speech usage per tenant
+      - record: primarch:tenant_speech_usage_minutes
+        expr: |
+          (
+            sum by (tenant_id) (
+              rate(primarch_speech_asr_audio_duration_seconds[10m])
+            ) + 
+            sum by (tenant_id) (
+              rate(primarch_speech_tts_output_duration_seconds[10m])
+            )
+          ) / 60
+
+# Health check metrics
+  - name: primarch_tool_health
+    interval: 30s
+    rules:
+      # Registry health
+      - record: primarch:tool_registry_health
+        expr: |
+          (time() - primarch_tool_registry_last_reload_timestamp) < 3600
+
+      # Model availability
+      - record: primarch:speech_models_available
+        expr: |
+          primarch_speech_asr_model_loaded + primarch_speech_tts_models_loaded
+
+# Resource utilization
+  - name: primarch_tool_resources
+    interval: 30s
+    rules:
+      # Memory usage by tool type
+      - record: primarch:tool_memory_usage_by_type
+        expr: |
+          sum by (tool_type) (primarch_tool_memory_usage_bytes)
+
+      # GPU memory usage for speech processing
+      - record: primarch:speech_gpu_memory_utilization
+        expr: |
+          primarch_speech_gpu_memory_used_bytes / primarch_speech_gpu_memory_total_bytes
+
+      # Active tool execution capacity
+      - record: primarch:tool_execution_capacity_utilization
+        expr: |
+          sum(primarch_active_tool_executions) / 100  # Assume 100 max concurrent

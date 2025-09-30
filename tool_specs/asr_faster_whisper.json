@@ -1,0 +1,106 @@
+{
+  "name": "asr_faster_whisper",
+  "description": "Convert speech audio to text using Faster Whisper ASR model",
+  "type": "asr",
+  "version": "1.0.0",
+  "required_permission": "user",
+  "category": "speech_processing",
+  "parameters": {
+    "audio_data": {
+      "type": "binary",
+      "required": true,
+      "description": "Audio file data in supported format",
+      "formats": ["wav", "mp3", "m4a", "flac", "ogg"],
+      "max_size_mb": 25
+    },
+    "language": {
+      "type": "string",
+      "required": false,
+      "default": "auto",
+      "description": "Language code for transcription (ISO 639-1)",
+      "enum": ["auto", "en", "es", "fr", "de", "it", "pt", "ru", "zh", "ja", "ko"]
+    },
+    "task": {
+      "type": "string",
+      "required": false,
+      "default": "transcribe",
+      "enum": ["transcribe", "translate"],
+      "description": "Task type: transcribe in original language or translate to English"
+    },
+    "return_segments": {
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "Return word-level segments with timestamps"
+    },
+    "temperature": {
+      "type": "number",
+      "required": false,
+      "default": 0.0,
+      "min": 0.0,
+      "max": 1.0,
+      "description": "Sampling temperature for transcription"
+    }
+  },
+  "timeout": 60,
+  "rate_limits": {
+    "per_minute": 10,
+    "per_hour": 100,
+    "per_day": 500
+  },
+  "resource_requirements": {
+    "memory_mb": 4096,
+    "gpu_memory_mb": 4096,
+    "cpu_cores": 2,
+    "disk_temp_mb": 100
+  },
+  "error_codes": {
+    "SPEECH_E001": "Unsupported audio format",
+    "SPEECH_E002": "Audio file too large",
+    "SPEECH_E003": "Audio file corrupted or unreadable",
+    "SPEECH_E004": "Model loading failed",
+    "SPEECH_E005": "CUDA out of memory",
+    "SPEECH_E006": "Processing timeout"
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "transcript": {
+        "type": "string",
+        "description": "Full transcribed text"
+      },
+      "language": {
+        "type": "string",
+        "description": "Detected or specified language code"
+      },
+      "confidence": {
+        "type": "number",
+        "description": "Overall transcription confidence (0-1)"
+      },
+      "segments": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "text": {"type": "string"},
+            "start": {"type": "number"},
+            "end": {"type": "number"},
+            "confidence": {"type": "number"}
+          }
+        }
+      },
+      "processing_time_ms": {
+        "type": "integer",
+        "description": "Processing duration in milliseconds"
+      },
+      "model_used": {
+        "type": "string",
+        "description": "Model version used for transcription"
+      }
+    }
+  },
+  "health_check": {
+    "endpoint": "/health/asr",
+    "expected_response_time_ms": 100
+  }
+}

@@ -1,0 +1,22 @@
+# Dataset catalog (MVP)
+datasets:
+  requests:
+    primary_key: request_id
+    pii_flag_field: pii_flag
+    retention_ref: compliance/retention_matrix.yaml
+  messages:
+    primary_key: message_id
+    pii_flag_field: pii_flag
+    retention_ref: compliance/retention_matrix.yaml
+  tool_calls:
+    primary_key: call_id
+    pii_flag_field: pii_flag
+    retention_ref: compliance/retention_matrix.yaml
+  embeddings:
+    primary_key: point_id
+    dim: 1536        # update if model differs
+    retention_ref: compliance/retention_matrix.yaml
+  evaluations:
+    primary_key: eval_id
+    metrics: [win_rate, exact_match, toxicity, pii_hits]
+    retention_ref: compliance/retention_matrix.yaml

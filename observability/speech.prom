@@ -1,0 +1,447 @@
+# Primarch Speech Processing Observability Configuration
+# Prometheus metrics and alerts for ASR and TTS systems
+
+# ================================
+# SPEECH PROCESSING METRICS
+# ================================
+
+# ASR (Automatic Speech Recognition) Metrics
+## Request and response metrics
+- name: primarch_asr_requests_total
+  type: counter
+  help: Total number of ASR requests processed
+  labels:
+    - model_size
+    - language
+    - device
+    - status
+
+- name: primarch_asr_processing_duration_seconds
+  type: histogram
+  help: Time spent processing ASR requests
+  labels:
+    - model_size
+    - device
+  buckets: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0]
+
+- name: primarch_asr_rtf_ratio
+  type: histogram
+  help: Real-time factor ratio for ASR processing
+  labels:
+    - model_size
+    - device
+  buckets: [0.05, 0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]
+
+- name: primarch_asr_errors_total
+  type: counter
+  help: Total number of ASR errors
+  labels:
+    - model_size
+    - error_type
+    - device
+
+- name: primarch_asr_active_requests
+  type: gauge
+  help: Number of currently active ASR requests
+  labels:
+    - model_size
+    - device
+
+- name: primarch_asr_model_load_duration_seconds
+  type: histogram
+  help: Time spent loading ASR models
+  labels:
+    - model_size
+  buckets: [1.0, 5.0, 10.0, 30.0, 60.0, 120.0]
+
+- name: primarch_asr_audio_duration_seconds
+  type: histogram
+  help: Duration of audio files processed
+  buckets: [1.0, 5.0, 15.0, 30.0, 60.0, 120.0, 300.0]
+
+- name: primarch_asr_transcription_length
+  type: histogram
+  help: Length of transcribed text in characters
+  buckets: [50, 100, 500, 1000, 2000, 5000, 10000]
+
+- name: primarch_asr_vad_segments_total
+  type: counter
+  help: Number of voice activity detection segments processed
+  labels:
+    - model_size
+
+- name: primarch_asr_hallucinations_detected_total
+  type: counter
+  help: Number of hallucinations detected in transcriptions
+  labels:
+    - model_size
+    - detection_method
+
+- name: primarch_asr_streaming_chunks_total
+  type: counter
+  help: Number of streaming audio chunks processed
+  labels:
+    - model_size
+    - chunk_duration
+
+- name: primarch_asr_confidence_scores
+  type: histogram
+  help: Distribution of transcription confidence scores
+  buckets: [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99, 1.0]
+
+# TTS (Text-to-Speech) Metrics
+## Request and response metrics
+- name: primarch_tts_requests_total
+  type: counter
+  help: Total number of TTS requests processed
+  labels:
+    - model_name
+    - voice
+    - language
+    - device
+    - status
+
+- name: primarch_tts_processing_duration_seconds
+  type: histogram
+  help: Time spent processing TTS requests
+  labels:
+    - model_name
+    - device
+  buckets: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]
+
+- name: primarch_tts_rtf_ratio
+  type: histogram
+  help: Real-time factor ratio for TTS processing
+  labels:
+    - model_name
+    - device
+  buckets: [0.1, 0.2, 0.5, 1.0, 2.0, 5.0, 10.0]
+
+- name: primarch_tts_errors_total
+  type: counter
+  help: Total number of TTS errors
+  labels:
+    - model_name
+    - error_type
+    - device
+
+- name: primarch_tts_active_synthesis
+  type: gauge
+  help: Number of currently active TTS synthesis operations
+  labels:
+    - model_name
+    - device
+
+- name: primarch_tts_text_length
+  type: histogram
+  help: Length of input text for TTS synthesis
+  buckets: [10, 50, 100, 500, 1000, 2000, 5000]
+
+- name: primarch_tts_audio_duration_seconds
+  type: histogram
+  help: Duration of synthesized audio
+  buckets: [1.0, 5.0, 10.0, 30.0, 60.0, 120.0]
+
+- name: primarch_tts_characters_processed_total
+  type: counter
+  help: Total characters processed by TTS
+  labels:
+    - model_name
+    - language
+
+- name: primarch_tts_voice_cloning_requests_total
+  type: counter
+  help: Number of voice cloning requests
+  labels:
+    - model_name
+    - status
+
+- name: primarch_tts_voice_cloning_duration_seconds
+  type: histogram
+  help: Time spent on voice cloning operations
+  buckets: [5.0, 10.0, 30.0, 60.0, 120.0, 300.0]
+
+# Resource Usage Metrics
+## GPU metrics
+- name: primarch_speech_gpu_memory_used_bytes
+  type: gauge
+  help: GPU memory used by speech processing
+  labels:
+    - device_id
+    - component
+
+- name: primarch_speech_gpu_utilization_percent
+  type: gauge
+  help: GPU utilization percentage for speech processing
+  labels:
+    - device_id
+    - component
+
+## CPU metrics
+- name: primarch_speech_cpu_usage_percent
+  type: gauge
+  help: CPU usage for speech processing
+  labels:
+    - component
+
+## Memory metrics
+- name: primarch_speech_memory_usage_bytes
+  type: gauge
+  help: Memory usage for speech processing
+  labels:
+    - component
+
+# Queue and Throughput Metrics
+- name: primarch_speech_queue_length
+  type: gauge
+  help: Number of requests in processing queue
+  labels:
+    - component
+    - priority
+
+- name: primarch_speech_queue_wait_duration_seconds
+  type: histogram
+  help: Time spent waiting in queue
+  labels:
+    - component
+  buckets: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]
+
+# Model Performance Metrics
+- name: primarch_speech_model_switching_total
+  type: counter
+  help: Number of model switches (fallbacks)
+  labels:
+    - from_model
+    - to_model
+    - reason
+
+- name: primarch_speech_fallback_activations_total
+  type: counter
+  help: Number of fallback mechanism activations
+  labels:
+    - component
+    - fallback_type
+
+# ================================
+# ALERT RULES
+# ================================
+
+# High Error Rate Alerts
+- alert: HighASRErrorRate
+  expr: |
+    (
+      rate(primarch_asr_errors_total[5m]) / 
+      rate(primarch_asr_requests_total[5m])
+    ) > 0.03
+  for: 2m
+  labels:
+    severity: warning
+    component: asr
+  annotations:
+    summary: "High ASR error rate detected"
+    description: "ASR error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+    runbook_url: "https://docs.primarch.ai/runbooks/speech-troubleshooting#high-asr-error-rate"
+
+- alert: HighTTSErrorRate
+  expr: |
+    (
+      rate(primarch_tts_errors_total[5m]) / 
+      rate(primarch_tts_requests_total[5m])
+    ) > 0.02
+  for: 2m
+  labels:
+    severity: warning
+    component: tts
+  annotations:
+    summary: "High TTS error rate detected"
+    description: "TTS error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+
+# Performance Alerts
+- alert: HighASRLatency
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_asr_processing_duration_seconds_bucket[5m])
+    ) > 5.0
+  for: 3m
+  labels:
+    severity: warning
+    component: asr
+  annotations:
+    summary: "High ASR processing latency"
+    description: "ASR p95 latency is {{ $value }}s, exceeding 5s threshold"
+
+- alert: HighASRRTF
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_asr_rtf_ratio_bucket{device="cuda"}[5m])
+    ) > 1.0
+  for: 2m
+  labels:
+    severity: critical
+    component: asr
+  annotations:
+    summary: "ASR Real-Time Factor too high"
+    description: "ASR RTF is {{ $value }}, indicating slower than real-time processing"
+
+- alert: HighTTSLatency
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_tts_processing_duration_seconds_bucket[5m])
+    ) > 3.0
+  for: 3m
+  labels:
+    severity: warning
+    component: tts
+  annotations:
+    summary: "High TTS processing latency"
+    description: "TTS p95 latency is {{ $value }}s, exceeding 3s threshold"
+
+# Resource Alerts
+- alert: HighGPUMemoryUsage
+  expr: |
+    primarch_speech_gpu_memory_used_bytes / 
+    (primarch_speech_gpu_memory_used_bytes + primarch_speech_gpu_memory_free_bytes) > 0.85
+  for: 5m
+  labels:
+    severity: warning
+    component: speech
+  annotations:
+    summary: "High GPU memory usage"
+    description: "GPU {{ $labels.device_id }} memory usage is {{ $value | humanizePercentage }}"
+
+- alert: HighCPUUsage
+  expr: primarch_speech_cpu_usage_percent > 80
+  for: 5m
+  labels:
+    severity: warning
+    component: speech
+  annotations:
+    summary: "High CPU usage in speech processing"
+    description: "CPU usage is {{ $value }}% for {{ $labels.component }}"
+
+# Queue and Capacity Alerts
+- alert: HighQueueLength
+  expr: primarch_speech_queue_length > 20
+  for: 2m
+  labels:
+    severity: warning
+    component: speech
+  annotations:
+    summary: "High speech processing queue length"
+    description: "Queue length is {{ $value }} for {{ $labels.component }}"
+
+- alert: LongQueueWaitTime
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_speech_queue_wait_duration_seconds_bucket[5m])
+    ) > 10.0
+  for: 2m
+  labels:
+    severity: warning
+    component: speech
+  annotations:
+    summary: "Long queue wait times"
+    description: "Queue wait time p95 is {{ $value }}s"
+
+# Model Health Alerts
+- alert: ModelLoadFailure
+  expr: increase(primarch_asr_errors_total{error_type="model_load_failure"}[5m]) > 1
+  for: 1m
+  labels:
+    severity: critical
+    component: asr
+  annotations:
+    summary: "ASR model load failure"
+    description: "ASR model failed to load {{ $value }} times in the last 5 minutes"
+
+- alert: HighHallucinationRate
+  expr: |
+    (
+      rate(primarch_asr_hallucinations_detected_total[10m]) / 
+      rate(primarch_asr_requests_total[10m])
+    ) > 0.1
+  for: 5m
+  labels:
+    severity: warning
+    component: asr
+  annotations:
+    summary: "High hallucination rate in ASR"
+    description: "Hallucination rate is {{ $value | humanizePercentage }}"
+
+- alert: FrequentFallbacks
+  expr: rate(primarch_speech_fallback_activations_total[10m]) > 0.1
+  for: 5m
+  labels:
+    severity: warning
+    component: speech
+  annotations:
+    summary: "Frequent fallback activations"
+    description: "Fallback rate is {{ $value }} per second for {{ $labels.component }}"
+
+# Capacity Planning Alerts
+- alert: ApproachingCapacityLimit
+  expr: primarch_asr_active_requests > 15
+  for: 3m
+  labels:
+    severity: warning
+    component: asr
+  annotations:
+    summary: "ASR approaching capacity limit"
+    description: "{{ $value }} active ASR requests, consider scaling"
+
+- alert: TTSCapacityLimit
+  expr: primarch_tts_active_synthesis > 12
+  for: 3m
+  labels:
+    severity: warning
+    component: tts
+  annotations:
+    summary: "TTS approaching capacity limit"
+    description: "{{ $value }} active TTS synthesis operations"
+
+# ================================
+# RECORDING RULES
+# ================================
+
+# Aggregated Error Rates
+- record: primarch:speech_error_rate_5m
+  expr: |
+    (
+      rate(primarch_asr_errors_total[5m]) + 
+      rate(primarch_tts_errors_total[5m])
+    ) / (
+      rate(primarch_asr_requests_total[5m]) + 
+      rate(primarch_tts_requests_total[5m])
+    )
+
+# Aggregated Processing Rates
+- record: primarch:speech_processing_rate_5m
+  expr: |
+    rate(primarch_asr_requests_total[5m]) + 
+    rate(primarch_tts_requests_total[5m])
+
+# Resource Utilization Averages
+- record: primarch:speech_avg_gpu_utilization
+  expr: avg(primarch_speech_gpu_utilization_percent) by (device_id)
+
+- record: primarch:speech_avg_cpu_utilization
+  expr: avg(primarch_speech_cpu_usage_percent) by (component)
+
+# Performance Percentiles
+- record: primarch:asr_latency_p95_5m
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_asr_processing_duration_seconds_bucket[5m])
+    )
+
+- record: primarch:tts_latency_p95_5m
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_tts_processing_duration_seconds_bucket[5m])
+    )
+
+- record: primarch:asr_rtf_p95_5m
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_asr_rtf_ratio_bucket[5m])
+    )

@@ -1,0 +1,5 @@
+# Tenant Portal Alerts (sketch)
+# ALERT DsrSlaBreach          IF dsr_open_duration_days > 30
+# ALERT Portal5xxRate         IF rate(tenant_portal_http_5xx_total[5m]) > 0
+# ALERT ExportDelay           IF export_task_lag_hours > 2
+# ALERT ResidencyViolation    IF increase(residency_violation_total[5m]) > 0

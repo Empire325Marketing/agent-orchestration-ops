@@ -1,0 +1,551 @@
+# Primarch Safety and Guardrails Monitoring Configuration
+# Prometheus metrics and alerts for content policy enforcement and jailbreak defense
+
+# ================================
+# GUARDRAILS PROCESSING METRICS
+# ================================
+
+# Request and response metrics
+- name: primarch_guardrails_requests_total
+  type: counter
+  help: Total number of guardrails requests processed
+  labels:
+    - rail_type
+    - tenant_id
+    - user_id
+    - result
+
+- name: primarch_guardrails_processing_duration_seconds
+  type: histogram
+  help: Time spent processing guardrails requests
+  labels:
+    - rail_type
+    - tenant_id
+  buckets: [0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
+
+- name: primarch_guardrails_layers_triggered
+  type: histogram
+  help: Number of guardrail layers triggered per request
+  labels:
+    - tenant_id
+  buckets: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+- name: primarch_guardrails_active_requests
+  type: gauge
+  help: Number of currently active guardrails requests
+  labels:
+    - rail_type
+    - tenant_id
+
+# Content policy enforcement metrics
+- name: primarch_content_policy_violations_total
+  type: counter
+  help: Total content policy violations detected
+  labels:
+    - policy_type
+    - severity
+    - violation_category
+    - tenant_id
+    - action_taken
+
+- name: primarch_content_policy_blocks_total
+  type: counter
+  help: Total requests blocked by content policy
+  labels:
+    - policy_category
+    - block_reason
+    - tenant_id
+
+- name: primarch_content_policy_false_positives_total
+  type: counter
+  help: Number of false positive policy violations
+  labels:
+    - policy_type
+    - tenant_id
+
+# ================================
+# JAILBREAK DETECTION METRICS
+# ================================
+
+# Jailbreak attempt detection
+- name: primarch_jailbreak_attempts_total
+  type: counter
+  help: Total jailbreak attempts detected
+  labels:
+    - detection_method
+    - attack_type
+    - tenant_id
+    - blocked
+
+- name: primarch_jailbreak_detection_accuracy
+  type: gauge
+  help: Jailbreak detection accuracy score
+  labels:
+    - detection_model
+    - tenant_id
+
+- name: primarch_jailbreak_confidence_scores
+  type: histogram
+  help: Distribution of jailbreak detection confidence scores
+  labels:
+    - detection_method
+    - tenant_id
+  buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+- name: primarch_jailbreak_bypass_attempts_total
+  type: counter
+  help: Number of jailbreak bypass attempts detected
+  labels:
+    - bypass_technique
+    - success
+    - tenant_id
+
+# LlamaGuard specific metrics
+- name: primarch_llamaguard_classifications_total
+  type: counter
+  help: Total LlamaGuard classifications performed
+  labels:
+    - classification_result
+    - violated_categories
+    - tenant_id
+
+- name: primarch_llamaguard_processing_duration_seconds
+  type: histogram
+  help: LlamaGuard model inference time
+  labels:
+    - tenant_id
+  buckets: [0.1, 0.25, 0.5, 1.0, 2.0, 3.0, 5.0, 8.0, 12.0]
+
+- name: primarch_llamaguard_model_load_time_seconds
+  type: histogram
+  help: Time taken to load LlamaGuard model
+  buckets: [1, 5, 10, 30, 60, 120, 300]
+
+# ================================
+# PII AND SENSITIVE DATA METRICS
+# ================================
+
+# PII detection and redaction
+- name: primarch_pii_detections_total
+  type: counter
+  help: Total PII detections
+  labels:
+    - pii_type
+    - action_taken
+    - tenant_id
+
+- name: primarch_pii_redactions_total
+  type: counter
+  help: Total PII redactions performed
+  labels:
+    - pii_type
+    - redaction_method
+    - tenant_id
+
+- name: primarch_sensitive_data_exposures_total
+  type: counter
+  help: Number of sensitive data exposure attempts
+  labels:
+    - data_type
+    - exposure_prevented
+    - tenant_id
+
+- name: primarch_data_classification_checks_total
+  type: counter
+  help: Total data classification checks performed
+  labels:
+    - classification_level
+    - access_granted
+    - tenant_id
+
+# ================================
+# NEMO GUARDRAILS METRICS
+# ================================
+
+# NeMo Guardrails specific metrics
+- name: primarch_nemo_rails_executions_total
+  type: counter
+  help: Total NeMo Guardrails executions
+  labels:
+    - rail_type
+    - execution_result
+    - tenant_id
+
+- name: primarch_nemo_self_check_results_total
+  type: counter
+  help: Results of NeMo self-check validations
+  labels:
+    - check_type
+    - result
+    - tenant_id
+
+- name: primarch_nemo_custom_actions_total
+  type: counter
+  help: Custom action executions in NeMo Guardrails
+  labels:
+    - action_name
+    - execution_result
+    - tenant_id
+
+- name: primarch_nemo_dialog_flows_total
+  type: counter
+  help: Dialog flow executions in NeMo Guardrails
+  labels:
+    - flow_name
+    - completion_status
+    - tenant_id
+
+# ================================
+# COMPLIANCE AND AUDIT METRICS
+# ================================
+
+# Regulatory compliance metrics
+- name: primarch_compliance_violations_total
+  type: counter
+  help: Compliance violations detected
+  labels:
+    - regulation
+    - violation_type
+    - tenant_id
+
+- name: primarch_audit_events_total
+  type: counter
+  help: Audit events generated
+  labels:
+    - event_type
+    - severity
+    - tenant_id
+
+- name: primarch_gdpr_processing_events_total
+  type: counter
+  help: GDPR data processing events
+  labels:
+    - legal_basis
+    - data_subject_rights
+    - tenant_id
+
+- name: primarch_hipaa_phi_access_total
+  type: counter
+  help: HIPAA PHI access attempts
+  labels:
+    - access_granted
+    - phi_type
+    - tenant_id
+
+# ================================
+# PERFORMANCE AND QUALITY METRICS
+# ================================
+
+# Quality assurance metrics
+- name: primarch_response_quality_scores
+  type: histogram
+  help: Response quality scores
+  labels:
+    - tenant_id
+  buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+
+- name: primarch_fact_check_results_total
+  type: counter
+  help: Fact checking results
+  labels:
+    - fact_check_result
+    - tenant_id
+
+- name: primarch_bias_detections_total
+  type: counter
+  help: Bias detections in responses
+  labels:
+    - bias_type
+    - mitigation_applied
+    - tenant_id
+
+# Cache and performance metrics
+- name: primarch_guardrails_cache_hits_total
+  type: counter
+  help: Guardrails cache hits
+  labels:
+    - cache_type
+    - tenant_id
+
+- name: primarch_guardrails_cache_misses_total
+  type: counter
+  help: Guardrails cache misses
+  labels:
+    - cache_type
+    - tenant_id
+
+- name: primarch_guardrails_memory_usage_bytes
+  type: gauge
+  help: Memory usage by guardrails components
+  labels:
+    - component
+    - tenant_id
+
+# ================================
+# SECURITY EVENT METRICS
+# ================================
+
+# Security monitoring
+- name: primarch_security_events_total
+  type: counter
+  help: Security events detected
+  labels:
+    - event_type
+    - severity
+    - tenant_id
+
+- name: primarch_threat_detections_total
+  type: counter
+  help: Advanced threat detections
+  labels:
+    - threat_type
+    - detection_method
+    - tenant_id
+
+- name: primarch_social_engineering_attempts_total
+  type: counter
+  help: Social engineering attempts detected
+  labels:
+    - technique
+    - blocked
+    - tenant_id
+
+- name: primarch_context_manipulation_attempts_total
+  type: counter
+  help: Context manipulation attempts
+  labels:
+    - manipulation_type
+    - detected
+    - tenant_id
+
+# ================================
+# ERROR AND FAILURE METRICS
+# ================================
+
+# Error tracking
+- name: primarch_guardrails_errors_total
+  type: counter
+  help: Total guardrails processing errors
+  labels:
+    - error_type
+    - component
+    - tenant_id
+
+- name: primarch_model_failures_total
+  type: counter
+  help: ML model failures in guardrails
+  labels:
+    - model_type
+    - failure_reason
+    - tenant_id
+
+- name: primarch_guardrails_timeouts_total
+  type: counter
+  help: Guardrails processing timeouts
+  labels:
+    - timeout_type
+    - tenant_id
+
+- name: primarch_guardrails_circuit_breaker_trips_total
+  type: counter
+  help: Circuit breaker activations
+  labels:
+    - trigger_reason
+    - tenant_id
+
+# ================================
+# BUSINESS METRICS
+# ================================
+
+# Cost and usage metrics
+- name: primarch_guardrails_processing_cost_dollars
+  type: counter
+  help: Cost of guardrails processing
+  labels:
+    - cost_category
+    - tenant_id
+
+- name: primarch_blocked_requests_impact_total
+  type: counter
+  help: Business impact of blocked requests
+  labels:
+    - impact_category
+    - tenant_id
+
+- name: primarch_user_satisfaction_scores
+  type: histogram
+  help: User satisfaction with safety measures
+  labels:
+    - tenant_id
+  buckets: [1, 2, 3, 4, 5]
+
+# ================================
+# ALERT RULES
+# ================================
+
+# Critical security alerts
+- alert: HighJailbreakAttemptRate
+  expr: |
+    rate(primarch_jailbreak_attempts_total[5m]) > 10
+  for: 1m
+  labels:
+    severity: critical
+    component: guardrails
+  annotations:
+    summary: "High rate of jailbreak attempts detected"
+    description: "Jailbreak attempt rate is {{ $value }} per second"
+
+- alert: GuardrailsProcessingFailure
+  expr: |
+    rate(primarch_guardrails_errors_total[5m]) / 
+    rate(primarch_guardrails_requests_total[5m]) > 0.05
+  for: 2m
+  labels:
+    severity: warning
+    component: guardrails
+  annotations:
+    summary: "High guardrails error rate"
+    description: "Guardrails error rate is {{ $value | humanizePercentage }}"
+
+- alert: ContentPolicyViolationSpike
+  expr: |
+    increase(primarch_content_policy_violations_total[10m]) > 50
+  for: 2m
+  labels:
+    severity: warning
+    component: content_policy
+  annotations:
+    summary: "Spike in content policy violations"
+    description: "{{ $value }} policy violations in the last 10 minutes"
+
+- alert: PIIExposureAttempt
+  expr: |
+    increase(primarch_pii_detections_total[5m]) > 5
+  for: 1m
+  labels:
+    severity: critical
+    component: privacy
+  annotations:
+    summary: "Multiple PII exposure attempts"
+    description: "{{ $value }} PII exposures detected in 5 minutes"
+
+- alert: LlamaGuardModelDown
+  expr: |
+    increase(primarch_model_failures_total{model_type="llamaguard"}[5m]) > 0
+  for: 1m
+  labels:
+    severity: critical
+    component: jailbreak_detection
+  annotations:
+    summary: "LlamaGuard model failure"
+    description: "LlamaGuard model is experiencing failures"
+
+# Performance alerts
+- alert: HighGuardrailsLatency
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_guardrails_processing_duration_seconds_bucket[5m])
+    ) > 5.0
+  for: 3m
+  labels:
+    severity: warning
+    component: performance
+  annotations:
+    summary: "High guardrails processing latency"
+    description: "Guardrails p95 latency is {{ $value }}s"
+
+- alert: GuardrailsCircuitBreakerTripped
+  expr: |
+    increase(primarch_guardrails_circuit_breaker_trips_total[1m]) > 0
+  for: 0m
+  labels:
+    severity: critical
+    component: guardrails
+  annotations:
+    summary: "Guardrails circuit breaker activated"
+    description: "Circuit breaker tripped due to {{ $labels.trigger_reason }}"
+
+# Quality alerts
+- alert: LowResponseQuality
+  expr: |
+    histogram_quantile(0.5, 
+      rate(primarch_response_quality_scores_bucket[10m])
+    ) < 0.7
+  for: 5m
+  labels:
+    severity: warning
+    component: quality
+  annotations:
+    summary: "Low response quality detected"
+    description: "Median response quality is {{ $value }}"
+
+- alert: HighFalsePositiveRate
+  expr: |
+    rate(primarch_content_policy_false_positives_total[10m]) /
+    rate(primarch_content_policy_violations_total[10m]) > 0.1
+  for: 5m
+  labels:
+    severity: warning
+    component: content_policy
+  annotations:
+    summary: "High false positive rate in content policy"
+    description: "False positive rate is {{ $value | humanizePercentage }}"
+
+# ================================
+# RECORDING RULES
+# ================================
+
+# Aggregated safety metrics
+- record: primarch:guardrails_success_rate_5m
+  expr: |
+    1 - (
+      rate(primarch_guardrails_errors_total[5m]) /
+      rate(primarch_guardrails_requests_total[5m])
+    )
+
+- record: primarch:jailbreak_block_rate_5m
+  expr: |
+    rate(primarch_jailbreak_attempts_total{blocked="true"}[5m]) /
+    rate(primarch_jailbreak_attempts_total[5m])
+
+- record: primarch:content_policy_block_rate_5m
+  expr: |
+    rate(primarch_content_policy_blocks_total[5m]) /
+    rate(primarch_guardrails_requests_total[5m])
+
+- record: primarch:avg_guardrails_latency_5m
+  expr: |
+    histogram_quantile(0.5, 
+      rate(primarch_guardrails_processing_duration_seconds_bucket[5m])
+    )
+
+- record: primarch:p95_guardrails_latency_5m
+  expr: |
+    histogram_quantile(0.95, 
+      rate(primarch_guardrails_processing_duration_seconds_bucket[5m])
+    )
+
+# PII protection metrics
+- record: primarch:pii_protection_rate_5m
+  expr: |
+    rate(primarch_pii_redactions_total[5m]) /
+    rate(primarch_pii_detections_total[5m])
+
+# Quality metrics
+- record: primarch:avg_response_quality_1h
+  expr: |
+    histogram_quantile(0.5, 
+      rate(primarch_response_quality_scores_bucket[1h])
+    )
+
+# Cost efficiency metrics
+- record: primarch:cost_per_protected_request_1h
+  expr: |
+    rate(primarch_guardrails_processing_cost_dollars[1h]) /
+    rate(primarch_guardrails_requests_total[1h])
+
+# Security effectiveness
+- record: primarch:threat_detection_effectiveness_1h
+  expr: |
+    rate(primarch_threat_detections_total[1h]) /
+    rate(primarch_security_events_total[1h])

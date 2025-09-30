@@ -1,0 +1,4 @@
+# Residency Alerts (sketch)
+# ALERT CrossRegionPII IF increase(cross_region_pii_events_total[15m]) > 0
+# ALERT UntaggedWrites IF (1 - region_tagged_write_ratio) > 0.01 for 10m
+# ALERT OutOfRegionExport IF increase(out_of_region_export_total[5m]) > 0

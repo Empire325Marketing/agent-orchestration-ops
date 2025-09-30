@@ -1,0 +1,288 @@
+# SDK Observability Metrics Configuration
+
+# Prometheus Metrics for SDK Monitoring
+sdk_metrics:
+  # Usage Metrics
+  primarch_sdk_requests_total:
+    type: counter
+    help: "Total number of SDK requests by SDK type and version"
+    labels: ["sdk_type", "sdk_version", "method", "status"]
+  
+  primarch_sdk_request_duration_seconds:
+    type: histogram
+    help: "Request duration for SDK calls"
+    labels: ["sdk_type", "sdk_version", "method"]
+    buckets: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0]
+  
+  primarch_sdk_errors_total:
+    type: counter
+    help: "Total number of SDK errors by type"
+    labels: ["sdk_type", "sdk_version", "error_type", "error_code"]
+  
+  # Quality Metrics
+  primarch_sdk_response_quality_score:
+    type: histogram
+    help: "Response quality scores for SDK requests"
+    labels: ["sdk_type", "sdk_version", "model"]
+    buckets: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+  
+  primarch_sdk_safety_blocks_total:
+    type: counter
+    help: "Total number of safety blocks triggered"
+    labels: ["sdk_type", "sdk_version", "block_reason"]
+  
+  # Performance Metrics
+  primarch_sdk_token_usage_total:
+    type: counter
+    help: "Total tokens consumed by SDK"
+    labels: ["sdk_type", "sdk_version", "model", "operation"]
+  
+  primarch_sdk_cost_usd_total:
+    type: counter
+    help: "Total cost in USD for SDK operations"
+    labels: ["sdk_type", "sdk_version", "model"]
+  
+  # Adoption Metrics
+  primarch_sdk_active_users:
+    type: gauge
+    help: "Number of active SDK users in the last 24 hours"
+    labels: ["sdk_type", "sdk_version"]
+  
+  primarch_sdk_downloads_total:
+    type: counter
+    help: "Total SDK downloads from package managers"
+    labels: ["sdk_type", "version", "platform"]
+
+# Custom Metrics for Specific SDK Operations
+operation_metrics:
+  # Completions
+  completions:
+    latency: "primarch_sdk_completion_latency_seconds"
+    tokens_input: "primarch_sdk_completion_input_tokens_total"
+    tokens_output: "primarch_sdk_completion_output_tokens_total"
+    streaming_chunks: "primarch_sdk_completion_streaming_chunks_total"
+  
+  # Embeddings
+  embeddings:
+    latency: "primarch_sdk_embedding_latency_seconds"
+    batch_size: "primarch_sdk_embedding_batch_size"
+    dimension_count: "primarch_sdk_embedding_dimensions"
+  
+  # Tools
+  tools:
+    invocation_latency: "primarch_sdk_tool_invocation_latency_seconds"
+    success_rate: "primarch_sdk_tool_success_rate"
+    timeout_rate: "primarch_sdk_tool_timeout_rate"
+  
+  # Conversations
+  conversations:
+    message_count: "primarch_sdk_conversation_messages_total"
+    session_duration: "primarch_sdk_conversation_duration_seconds"
+    export_size: "primarch_sdk_conversation_export_bytes"
+
+# Error Tracking Categories
+error_categories:
+  authentication:
+    - "invalid_api_key"
+    - "expired_token"
+    - "oauth_failure"
+  
+  rate_limiting:
+    - "quota_exceeded"
+    - "rate_limit_hit"
+    - "concurrent_limit"
+  
+  validation:
+    - "invalid_parameters"
+    - "missing_required_field"
+    - "parameter_out_of_range"
+  
+  safety:
+    - "content_policy_violation"
+    - "pii_detected"
+    - "prompt_injection"
+    - "toxicity_detected"
+  
+  infrastructure:
+    - "model_unavailable"
+    - "service_timeout"
+    - "network_error"
+    - "internal_server_error"
+
+# Performance Benchmarks
+performance_targets:
+  python_sdk:
+    cold_start_time: "<2s"
+    import_time: "<500ms"
+    memory_overhead: "<50MB"
+    requests_per_second: ">100"
+  
+  javascript_sdk:
+    bundle_size: "<500KB"
+    init_time: "<100ms"
+    memory_usage: "<30MB"
+    concurrent_requests: ">50"
+  
+  cli:
+    startup_time: "<1s"
+    command_completion: "<5s"
+    memory_footprint: "<20MB"
+    binary_size: "<10MB"
+
+# Quality Metrics Definitions
+quality_metrics:
+  response_accuracy:
+    calculation: "human_evaluation_score"
+    target: ">0.85"
+    measurement_window: "weekly"
+  
+  consistency_score:
+    calculation: "semantic_similarity_between_runs"
+    target: ">0.90"
+    measurement_window: "daily"
+  
+  safety_compliance:
+    calculation: "passed_safety_tests / total_tests"
+    target: "1.0"
+    measurement_window: "continuous"
+  
+  documentation_coverage:
+    calculation: "documented_methods / total_methods"
+    target: ">0.95"
+    measurement_window: "per_release"
+
+# User Experience Metrics
+ux_metrics:
+  time_to_first_success:
+    description: "Time from SDK installation to first successful API call"
+    target: "<5 minutes"
+    tracking: "telemetry_opt_in"
+  
+  error_resolution_time:
+    description: "Time to resolve SDK-related user issues"
+    target: "<2 hours"
+    tracking: "support_tickets"
+  
+  feature_adoption_rate:
+    description: "Percentage of users adopting new SDK features"
+    target: ">30% within 3 months"
+    tracking: "usage_analytics"
+  
+  user_satisfaction:
+    description: "User satisfaction scores from surveys"
+    target: ">4.0/5.0"
+    tracking: "quarterly_surveys"
+
+# Alerting Configuration
+alerts:
+  high_error_rate:
+    condition: "error_rate > 0.05"
+    duration: "5m"
+    severity: "warning"
+    notification: ["#sdk-alerts", "sdk-team@primarch.ai"]
+  
+  critical_error_rate:
+    condition: "error_rate > 0.1"
+    duration: "2m"
+    severity: "critical"
+    notification: ["#incidents", "oncall@primarch.ai"]
+  
+  performance_degradation:
+    condition: "p95_latency > 5s"
+    duration: "10m"
+    severity: "warning"
+    notification: ["#sdk-alerts"]
+  
+  safety_block_spike:
+    condition: "safety_blocks_rate > 10x baseline"
+    duration: "1m"
+    severity: "critical"
+    notification: ["#security", "#sdk-alerts"]
+  
+  adoption_drop:
+    condition: "daily_active_users < 0.8 * 7d_average"
+    duration: "1d"
+    severity: "warning"
+    notification: ["#product", "#sdk-alerts"]
+
+# Data Retention Policies
+retention:
+  high_frequency_metrics:
+    resolution: "1m"
+    retention: "7d"
+    downsampling: "5m for 30d, 1h for 1y"
+  
+  usage_analytics:
+    resolution: "1h"
+    retention: "2y"
+    aggregation: "daily, weekly, monthly summaries"
+  
+  error_logs:
+    resolution: "raw"
+    retention: "90d"
+    sampling: "100% for errors, 1% for success"
+  
+  performance_traces:
+    resolution: "raw"
+    retention: "7d"
+    sampling: "1% normal, 100% slow requests"
+
+# Dashboard Specifications
+dashboards:
+  sdk_overview:
+    panels:
+      - "Request volume by SDK"
+      - "Error rates by SDK version"
+      - "Response time percentiles"
+      - "Active user count"
+      - "Cost trends"
+    refresh: "30s"
+    time_range: "24h"
+  
+  sdk_quality:
+    panels:
+      - "Safety block rates"
+      - "Response quality scores"
+      - "Feature adoption rates"
+      - "User satisfaction trends"
+    refresh: "5m"
+    time_range: "7d"
+  
+  sdk_performance:
+    panels:
+      - "Latency heatmaps"
+      - "Throughput metrics"
+      - "Resource utilization"
+      - "Capacity planning"
+    refresh: "1m"
+    time_range: "1h"
+  
+  release_health:
+    panels:
+      - "Version adoption rates"
+      - "Rollback frequency"
+      - "Issue resolution time"
+      - "Release velocity"
+    refresh: "1h"
+    time_range: "30d"
+
+# Integration Points
+integrations:
+  prometheus:
+    endpoint: "/metrics"
+    scrape_interval: "30s"
+    labels: ["environment", "region", "sdk_version"]
+  
+  grafana:
+    datasource: "prometheus"
+    notification_channels: ["slack", "email", "pagerduty"]
+  
+  jaeger:
+    tracing: "enabled"
+    sampling_rate: "0.01"
+    trace_id_propagation: "required"
+  
+  sentry:
+    error_tracking: "enabled"
+    release_tracking: "enabled"
+    performance_monitoring: "enabled"

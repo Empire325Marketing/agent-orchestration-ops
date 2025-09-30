@@ -1,0 +1,48 @@
+retention_matrix:
+  - record_type: recruitment
+    jurisdiction: US-Federal
+    legal_basis: ["EEOC"]
+    min_years: 1
+    max_years: 2
+    residency: "US-only"
+    transfer_mechanism: ["N/A"]
+    legal_hold_supported: true
+    deletion_runbook: "runbooks/delete-recruitment.md"
+    citation: "EEOC recordkeeping requirements"
+    owner: "Legal Ops"
+  - record_type: core_hr
+    jurisdiction: EU (GDPR)
+    legal_basis: ["Art 6(1)(b)/(c)/(f)"]
+    min_years: "proportional (e.g., employment + 2y)"
+    max_years: 10
+    residency: "EU-only preferred"
+    transfer_mechanism: ["SCCs/BCR"]
+    legal_hold_supported: true
+    deletion_runbook: "runbooks/delete-core-hr.md"
+    citation: "EDPB employment guidance"
+    owner: "Legal Ops"
+  - record_type: payroll_tax
+    jurisdiction: US-Federal
+    legal_basis: ["FLSA/IRS"]
+    min_years: 3
+    max_years: 7
+    residency: "US-only"
+    transfer_mechanism: ["N/A"]
+    legal_hold_supported: true
+    deletion_runbook: "runbooks/delete-payroll.md"
+    citation: "DOL/IRS retention guidance"
+    owner: "Legal Ops"
+  - record_type: right_to_work
+    jurisdiction: US-Federal
+    legal_basis: ["INA §274A"]
+    min_years: "3y post-hire OR 1y post-term (later of)"
+    max_years: "N/A (delete when no longer required)"
+    residency: "US-only"
+    transfer_mechanism: ["N/A"]
+    legal_hold_supported: true
+    deletion_runbook: "runbooks/delete-i9.md"
+    citation: "USCIS M-274"
+    owner: "Legal Ops"
+notes:
+  - "Extend per jurisdiction: UK, BR (LGPD), CA (PIPEDA), AU (Privacy Act), CN (PIPL)."
+  - "Legal holds pause deletion; all actions must produce audit artifacts."

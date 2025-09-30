@@ -1,0 +1,15 @@
+groups:
+- name: analytics_recording
+  rules:
+  - record: ns:win_rate_24h
+    expr: rate(golden_wins_total[24h]) / rate(golden_total[24h])
+  - record: ns:err_rate_1h
+    expr: rate(err_total[1h]) / rate(req_total[1h])
+  - record: ns:cost_per_req_24h
+    expr: rate(cost_usd_total[24h]) / rate(req_total[24h])
+  - record: ns:api_p95_ms
+    expr: p95_over_time(p95_ms{route=~"api.*"}[1h])
+  - record: ns:llm_p95_short_ms
+    expr: p95_over_time(llm_p95_ms{len="short"}[1h])
+  - record: ns:llm_p95_long_ms
+    expr: p95_over_time(llm_p95_ms{len="long"}[1h])

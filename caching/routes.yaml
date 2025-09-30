@@ -1,0 +1,24 @@
+version: v1
+routes:
+  - path: /v1/assist
+    cacheable: true
+    vary: [tenant, model, tool, params]
+    ttl_seconds: 60
+    pii_aware: true
+  - path: /v1/embeddings
+    cacheable: true
+    vary: [tenant, model, dim]
+    ttl_seconds: 604800   # 7 days
+    pii_aware: true
+  - path: /v1/tools/search_web
+    cacheable: true
+    vary: [tenant, query_hash]
+    ttl_seconds: 300
+    pii_aware: true
+  - path: /v1/health
+    cacheable: true
+    vary: []
+    ttl_seconds: 30
+    pii_aware: false
+notes:
+  - "Cache bypass if request carries no-store header or safety risk detected (Ch.26)."

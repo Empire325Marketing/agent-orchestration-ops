@@ -1,0 +1,31 @@
+collection:
+  name: primarch_rag
+  distance: cosine
+  vector:
+    name: embedding
+    dims: 1536  # placeholder; finalize in Chapter 4
+  payload_schema:
+    id: string
+    tenant_id: string
+    doc_type: string
+    pii_flags: array[string]
+    retention_category: string
+    legal_hold: boolean
+    source_table: enum["messages","rag_chunks"]
+    source_pk: string
+    created_at: timestamp
+hnsw:
+  m: 16
+  ef_construct: 128
+search:
+  ef: 128
+  top_k_default: 10
+write_ahead_log:
+  enabled: true
+  retention_hours: 168
+multi_tenancy:
+  strategy: "collection_per_tenant_or_payload_filter"
+notes:
+  - "Dims finalized in Chapter 4."
+  - "Legal holds prevent purge; retention jobs drive hard-deletes."
+  - "If Qdrant disabled, pgvector remains the only path."

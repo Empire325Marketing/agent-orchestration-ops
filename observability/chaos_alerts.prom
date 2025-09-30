@@ -1,0 +1,4 @@
+# Chaos Alerts (text sketches)
+# ALERT ChaosAbortOnSLO  IF error_budget_burn_5m > 1.0 AND chaos_active=1
+# ALERT ChaosFailoverSLO IF failover_time_seconds > 30
+# ALERT ChaosScopeBreach IF traffic_fraction > 0.10

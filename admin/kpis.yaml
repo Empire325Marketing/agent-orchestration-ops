@@ -1,0 +1,9 @@
+kpis:
+  burn_rate_1h: {target: "<=1.0"}
+  api_p95_ms:   {target: "<=950"}
+  llm_p95_short_ms: {target: "<=1500"}
+  llm_p95_long_ms:  {target: "<=3500"}
+  win_rate: {target: ">=0.90"}
+  safety_toxicity_rate: {target: "<=0.01"}
+  cost_headroom: {target: ">=0.20"}
+  persona_assets_present_ratio: {target: "==1.0"}

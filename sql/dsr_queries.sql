@@ -1,0 +1,9 @@
+-- DSR Queries (documentation; not executed)
+-- 1) Backlog with due in next 7 days
+-- SELECT * FROM dsr_requests WHERE status NOT IN ('closed','rejected') AND due_at < now() + interval '7 days';
+-- 2) SLA breach candidates
+-- SELECT * FROM dsr_requests WHERE type='export' AND age(due_at) > interval '0' AND status NOT IN ('ready','delivered','closed');
+-- 3) Export verification join with rollups
+-- SELECT r.id, v.rows, v.sha256, u.qty
+-- FROM dsr_exports v JOIN usage_rollups_daily u ON (u.tenant_id=v.tenant_id AND u.date=v.date)
+-- JOIN dsr_requests r ON r.id=v.dsr_id;

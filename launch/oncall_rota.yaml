@@ -1,0 +1,108 @@
+# On-call Rota (MVP placeholders)
+schedule:
+  timezone: UTC
+  primary:
+    - {start: "2025-09-27T00:00:00Z", end: "2025-10-04T00:00:00Z", handle: "sre-primary"}
+  secondary:
+    - {start: "2025-09-27T00:00:00Z", end: "2025-10-04T00:00:00Z", handle: "platform-eng"}
+escalation:
+  - after: 15m
+    to: secondary
+MD
+changed+=("$root/launch/oncall_rota.yaml")
+
+cat > "$root/launch/release_calendar.md" <<'MD'
+# Release Calendar (MVP)
+- Weekly window: Wed 18:00–22:00 UTC (change freeze outside emergency)
+- Blackout dates: quarter-end, major holidays
+- Canary steps: 10% (≥1h), 50% (≥2h), 100% (≥24h observation)
+MD
+changed+=("$root/launch/release_calendar.md")
+
+cat > "$root/launch/day0_day7_checklist.md" <<'MD'
+# Day-0/1/7 Checklists
+
+## Day-0
+- [ ] Rollout watchers green for 2h
+- [ ] Error budget burn within normal bounds
+- [ ] No safety hits; no cost anomalies
+
+## Day-1
+- [ ] Compare p95/error to baseline; confirm ≤ +10% drift
+- [ ] Review support tickets; zero Sev-1/2
+- [ ] Archive experiment results (Ch.18)
+
+## Day-7
+- [ ] Postmortem: what to keep/change
+- [ ] Update runbooks and risks (Ch.14)
+- [ ] DECISIONS.log entry with outcomes
+MD
+changed+=("$root/launch/day0_day7_checklist.md")
+
+# ---------- Observability watchers ----------
+cat > "$root/observability/launch_watch.prom" <<'PROM'
+groups:
+- name: launch_watch
+  rules:
+  - alert: LaunchP95Regression
+    expr: rate(p95_ms{phase="canary"}[5m]) / rate(p95_baseline_ms[5m]) > 1.2
+    for: 30m
+    labels: {severity: warning}
+    annotations: {summary: "p95 regression >20% during canary"}
+  - alert: LaunchErrorRateSpike
+    expr: rate(err_total{phase="canary"}[5m]) / rate(err_baseline_total[5m]) > 1.5
+    for: 30m
+    labels: {severity: critical}
+    annotations: {summary: "Error rate >1.5x baseline"}
+  - alert: LaunchSafetyBreach
+    expr: safety_ok == 0
+    for: 15m
+    labels: {severity: critical}
+    annotations: {summary: "Safety breach (jailbreak/PII)"}
+  - alert: LaunchCostHeadroomLow
+    expr: cost_headroom < 0.20
+    for: 30m
+    labels: {severity: warning}
+    annotations: {summary: "Cost headroom below 20% — downgrade or rollback"}
+PROM
+changed+=("$root/observability/launch_watch.prom")
+
+# ---------- Readiness tie-in ----------
+gate="$root/readiness/go_live_gate.md"
+cat > "$gate" <<'MD'
+# Readiness — Go-Live Gate
+
+Must be GREEN before promotion:
+- Chapters 0–18 checked in PROJECT_STATUS
+- Golden win_rate ≥ 0.90; p95 ≤ +20%; error ≤ 1.25×
+- safety_ok = true; cost headroom ≥ 20%
+- Compliance traces present; DPIA flags none
+- Backups restore validation passed within 24h
+- Trace coverage ≥ 0.95 (1h)
+- Rollback plan reviewed; on-call rota in place
+MD
+changed+=("$gate")
+
+# ---------- PROJECT_STATUS.md ----------
+status="$root/PROJECT_STATUS.md"
+touch "$status"
+if ! grep -q 'Chapter 19' "$status"; then
+  printf -- " - [x] Chapter 19 — Go-Live Cutover & Day-2 Ops\n" >> "$status"
+else
+  sed -i 's/\(\s*-\s*\)\[\s\]\(\s*Chapter 19 — Go-Live Cutover & Day-2 Ops.*\)$/\1[x]\2/' "$status" || true
+  grep -q '\[x\].*Chapter 19 — Go-Live Cutover' "$status" || \
+    sed -i 's/\(Chapter 19 — Go-Live Cutover & Day-2 Ops.*\)$/[x] \1/' "$status" || true
+fi
+changed+=("$status")
+
+# ---------- DECISIONS.log ----------
+log="$root/DECISIONS.log"
+touch "$log"
+echo "$ts | OPERATOR=iii | CHAPTER=19 | ACTION=go_live_cutover_pack | GATES=perf+quality+safety+cost+compliance | ROLLBACK=auto_on_breach | EXECUTOR=Claude(server)" >> "$log"
+changed+=("$log")
+
+# ---------- Output summary ----------
+echo "DONE"
+echo "Timestamp: $ts"
+printf "Paths changed:\n"
+for p in "${changed[@]}"; do printf " - %s\n" "$p"; done

@@ -1,0 +1,138 @@
+{
+  "name": "tts_piper",
+  "description": "Convert text to natural speech using Piper TTS models",
+  "type": "tts",
+  "version": "1.0.0",
+  "required_permission": "user",
+  "category": "speech_processing",
+  "parameters": {
+    "text": {
+      "type": "string",
+      "required": true,
+      "description": "Text to convert to speech",
+      "min_length": 1,
+      "max_length": 2000
+    },
+    "voice": {
+      "type": "string",
+      "required": false,
+      "default": "en_US-lessac-medium",
+      "description": "Voice model to use for synthesis",
+      "enum": [
+        "en_US-lessac-medium",
+        "en_US-ryan-medium",
+        "en_US-amy-medium",
+        "en_GB-alba-medium",
+        "en_GB-northern_english_male-medium",
+        "es_ES-carlfm-x-low",
+        "fr_FR-upmc-medium",
+        "de_DE-thorsten-medium",
+        "it_IT-riccardo-x-low",
+        "pt_BR-faber-medium"
+      ]
+    },
+    "speed": {
+      "type": "number",
+      "required": false,
+      "default": 1.0,
+      "min": 0.5,
+      "max": 2.0,
+      "description": "Speech speed multiplier"
+    },
+    "output_format": {
+      "type": "string",
+      "required": false,
+      "default": "wav",
+      "enum": ["wav", "mp3"],
+      "description": "Audio output format"
+    },
+    "sample_rate": {
+      "type": "integer",
+      "required": false,
+      "default": 22050,
+      "enum": [16000, 22050, 44100, 48000],
+      "description": "Audio sample rate in Hz"
+    },
+    "noise_scale": {
+      "type": "number",
+      "required": false,
+      "default": 0.667,
+      "min": 0.0,
+      "max": 1.0,
+      "description": "Noise scale for voice variation"
+    },
+    "length_scale": {
+      "type": "number",
+      "required": false,
+      "default": 1.0,
+      "min": 0.5,
+      "max": 2.0,
+      "description": "Length scale for phoneme duration"
+    }
+  },
+  "timeout": 30,
+  "rate_limits": {
+    "per_minute": 30,
+    "per_hour": 500,
+    "per_day": 2000
+  },
+  "resource_requirements": {
+    "memory_mb": 2048,
+    "cpu_cores": 2,
+    "disk_temp_mb": 50
+  },
+  "error_codes": {
+    "SPEECH_E101": "Text too long",
+    "SPEECH_E102": "Voice model not found",
+    "SPEECH_E103": "Invalid parameters",
+    "SPEECH_E104": "TTS synthesis failed",
+    "SPEECH_E105": "Audio format conversion failed",
+    "SPEECH_E106": "Model loading timeout"
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "audio_url": {
+        "type": "string",
+        "description": "URL or path to generated audio file"
+      },
+      "duration_ms": {
+        "type": "integer",
+        "description": "Audio duration in milliseconds"
+      },
+      "sample_rate": {
+        "type": "integer",
+        "description": "Audio sample rate used"
+      },
+      "format": {
+        "type": "string",
+        "description": "Audio format (wav/mp3)"
+      },
+      "voice_used": {
+        "type": "string",
+        "description": "Voice model used for synthesis"
+      },
+      "processing_time_ms": {
+        "type": "integer",
+        "description": "Processing duration in milliseconds"
+      },
+      "text_length": {
+        "type": "integer",
+        "description": "Length of input text in characters"
+      },
+      "phoneme_count": {
+        "type": "integer",
+        "description": "Number of phonemes synthesized"
+      }
+    }
+  },
+  "health_check": {
+    "endpoint": "/health/tts",
+    "expected_response_time_ms": 150
+  },
+  "voice_capabilities": {
+    "languages": ["en", "es", "fr", "de", "it", "pt"],
+    "genders": ["male", "female"],
+    "quality_levels": ["x-low", "low", "medium", "high"]
+  }
+}

@@ -1,0 +1,39 @@
+version: v1
+experiments:
+  - id: CHX-001
+    name: "Model Runtime Kill (canary)"
+    target: vllm
+    mode: kill
+    scope: canary
+    success_signals: ["auto-failover<=30s", "error_rate<=1.5x baseline 5m", "p95<=+20% 5m"]
+    rollback: "Chapter 10 canary rollback rules"
+  - id: CHX-002
+    name: "DB Read Latency Inject"
+    target: postgres
+    mode: latency
+    params: {p95_ms: 300}
+    scope: shadow
+    success_signals: ["error_budget_burn<1x", "retry_success>=95%"]
+  - id: CHX-003
+    name: "Proxy Egress Block (allowlist off-route)"
+    target: proxy
+    mode: denylist
+    scope: canary
+    success_signals: ["sandbox_violations=0", "egress_block_alerts_fired=1"]
+  - id: CHX-004
+    name: "Cache Disabled"
+    target: cache
+    mode: feature_flag_off
+    scope: canary
+    success_signals: ["hit_rate_drop_detected", "no_stale_beyond_TTL", "p95<=SLO"]
+  - id: CHX-005
+    name: "Safety Engine Timeout"
+    target: safety
+    mode: delay
+    params: {ms: 800}
+    scope: shadow
+    success_signals: ["safety_fallback_path_used", "block_rate unchanged on curated set"]
+guardrails:
+  - "Run only in shadow/canary"
+  - "Announce & record in DECISIONS.log"
+  - "Stop on breach of SLO/error budget (Ch.7/13)"

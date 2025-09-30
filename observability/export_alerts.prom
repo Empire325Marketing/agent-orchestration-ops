@@ -1,0 +1,175 @@
+groups:
+- name: export_alerts
+  rules:
+  # Export job stalled beyond SLA
+  - alert: ExportJobStalled
+    expr: |
+      (
+        time() - export_job_started_timestamp
+      ) > on(export_id) (
+        export_job_sla_seconds
+      )
+    for: 30m
+    labels: {severity: warning}
+    annotations:
+      summary: "Export {{$labels.export_id}} stalled beyond SLA"
+      description: "Export running for {{$value}} seconds, exceeds {{$labels.tier}} tier SLA"
+      runbook: "runbooks/export-request.md"
+
+  # Export job failed
+  - alert: ExportJobFailed
+    expr: |
+      export_job_status{status="failed"} == 1
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "Export {{$labels.export_id}} failed"
+      description: "Export for tenant {{$labels.tenant_id}} failed: {{$labels.error_reason}}"
+      runbook: "runbooks/export-request.md"
+
+  # Hash verification mismatch
+  - alert: ExportHashMismatch
+    expr: |
+      export_verification_failures{check_type="hash"} > 0
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "Export {{$labels.export_id}} hash verification failed"
+      description: "{{$value}} files failed hash verification"
+      runbook: "runbooks/export-verify.md"
+
+  # Row count variance exceeds threshold
+  - alert: ExportRowCountVariance
+    expr: |
+      abs(
+        (export_row_count - usage_rollup_row_count) / 
+        usage_rollup_row_count
+      ) > 0.05  # 5% variance threshold
+    for: 1m
+    labels: {severity: warning}
+    annotations:
+      summary: "Export {{$labels.export_id}} row count variance high"
+      description: "{{$labels.dataset}} row count differs by {{$value}}% from usage rollups"
+      runbook: "runbooks/export-verify.md"
+
+  # Manifest file missing
+  - alert: ExportManifestMissing
+    expr: |
+      export_manifest_generated{export_id} == 0
+    for: 5m
+    labels: {severity: critical}
+    annotations:
+      summary: "Export {{$labels.export_id}} manifest not generated"
+      description: "Export completed but manifest.json missing"
+      runbook: "runbooks/export-request.md"
+
+  # Download window expiring soon
+  - alert: ExportExpiringMoon
+    expr: |
+      (
+        export_download_expires_timestamp - time()
+      ) < 172800  # 48 hours
+    for: 1h
+    labels: {severity: warning}
+    annotations:
+      summary: "Export {{$labels.export_id}} expires in <48h"
+      description: "Download URL expires at {{$labels.expires_at}}, customer not yet notified of urgency"
+      runbook: "runbooks/export-request.md"
+
+  # Export storage usage high
+  - alert: ExportStorageHigh
+    expr: |
+      (
+        sum(export_storage_bytes_used) / 
+        export_storage_bytes_total
+      ) > 0.8
+    for: 15m
+    labels: {severity: warning}
+    annotations:
+      summary: "Export storage usage >80%"
+      description: "{{$value}}% of export storage used, cleanup needed"
+
+  # PII audit failures
+  - alert: ExportPIIAuditFailed
+    expr: |
+      export_pii_audit_failures > 0
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "Export {{$labels.export_id}} PII audit failed"
+      description: "{{$value}} PII leakage instances detected"
+      runbook: "runbooks/export-verify.md"
+
+  # Export queue backed up
+  - alert: ExportQueueBacklog
+    expr: |
+      export_queue_length > 10
+    for: 30m
+    labels: {severity: warning}
+    annotations:
+      summary: "Export queue length high"
+      description: "{{$value}} exports queued, processing may be delayed"
+
+  # Encryption key issues
+  - alert: ExportEncryptionKeyExpired
+    expr: |
+      export_pgp_key_expires_timestamp < time()
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "Export {{$labels.export_id}} PGP key expired"
+      description: "Customer PGP key expired {{$labels.days_ago}} days ago"
+      runbook: "runbooks/export-request.md"
+
+  # Data contract violations
+  - alert: ExportSchemaViolation
+    expr: |
+      export_schema_violations{dataset} > 0
+    for: 1m
+    labels: {severity: warning}
+    annotations:
+      summary: "Export {{$labels.export_id}} schema violations in {{$labels.dataset}}"
+      description: "{{$value}} schema violations detected"
+      runbook: "runbooks/export-verify.md"
+
+  # Offboarding delays
+  - alert: OffboardingDelayed
+    expr: |
+      (
+        time() - offboarding_started_timestamp
+      ) > 1209600  # 14 days
+    for: 1h
+    labels: {severity: warning}
+    annotations:
+      summary: "Tenant {{$labels.tenant_id}} offboarding delayed"
+      description: "Offboarding running {{$value}} seconds, may impact SLA"
+      runbook: "runbooks/offboarding.md"
+
+  # Deletion schedule overdue
+  - alert: DeletionScheduleOverdue
+    expr: |
+      deletion_scheduled_timestamp < (time() - 86400)  # 1 day overdue
+    for: 2h
+    labels: {severity: critical}
+    annotations:
+      summary: "Tenant {{$labels.tenant_id}} deletion overdue"
+      description: "Data deletion scheduled for {{$labels.scheduled_date}} but not completed"
+      runbook: "runbooks/offboarding.md"
+
+# Recording rules for export metrics
+- name: export_recording
+  rules:
+  - record: export:completion_time_by_tier
+    expr: |
+      histogram_quantile(0.95,
+        sum(rate(export_completion_seconds_bucket[1h])) by (tier, le)
+      )
+  
+  - record: export:success_rate_24h
+    expr: |
+      sum(rate(export_completed_total{status="success"}[24h])) /
+      sum(rate(export_completed_total[24h]))
+  
+  - record: export:avg_size_by_format
+    expr: |
+      avg(export_size_bytes) by (format)

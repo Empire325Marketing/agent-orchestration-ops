@@ -1,0 +1,67 @@
+groups:
+- name: authz_recording
+  rules:
+  # Authorization decision counters
+  - record: authz:allow_total
+    expr: sum(rate(authz_decisions_total{decision="allow"}[5m])) by (route, role, resource_type)
+  - record: authz:deny_total  
+    expr: sum(rate(authz_decisions_total{decision="deny"}[5m])) by (route, role, resource_type, reason)
+  - record: authz:latency_p95
+    expr: histogram_quantile(0.95, sum(rate(authz_check_duration_bucket[5m])) by (le))
+  
+  # Cross-tenant access attempts (security concern)
+  - record: authz:cross_tenant_attempts
+    expr: sum(rate(authz_decisions_total{decision="deny", reason="org_boundary_violation"}[5m]))
+  
+  # Role distribution
+  - record: authz:active_sessions_by_role
+    expr: count by (role) (authz_active_sessions)
+
+- name: authz_alerts
+  rules:
+  # Spike in authorization denials
+  - alert: AuthzDenialSpike
+    expr: rate(authz:deny_total[5m]) > (rate(authz:deny_total[1h]) * 3)
+    for: 2m
+    labels: {severity: warning}
+    annotations:
+      summary: "Authorization denial rate spiked ({{$value}}/min)"
+      description: "Authz denials increased 3x above hourly average"
+      runbook: "runbooks/access-review.md"
+  
+  # Unknown or suspicious roles
+  - alert: AuthzUnknownRole
+    expr: increase(authz_decisions_total{reason="unknown_role"}[5m]) > 0
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "Unknown role in JWT claims detected"
+      description: "JWT contained role not in permission matrix"
+  
+  # Missing required claims  
+  - alert: AuthzMissingClaims
+    expr: increase(authz_decisions_total{reason="missing_claims"}[5m]) > 0
+    for: 1m
+    labels: {severity: warning}
+    annotations:
+      summary: "JWT missing required authz claims"
+      description: "Malformed or incomplete JWT detected"
+  
+  # Cross-tenant access attempts
+  - alert: AuthzCrossTenantAttempt
+    expr: increase(authz:cross_tenant_attempts[5m]) > 0
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "Cross-tenant access attempt detected"
+      description: "User tried to access resources outside their org"
+      runbook: "runbooks/access-review.md"
+  
+  # High authorization latency
+  - alert: AuthzLatencyHigh
+    expr: authz:latency_p95 > 0.1  # 100ms
+    for: 5m
+    labels: {severity: warning}
+    annotations:
+      summary: "Authorization check latency high ({{$value}}s p95)"
+      description: "Authz middleware taking too long, may impact user experience"

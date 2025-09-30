@@ -1,0 +1,16 @@
+routes:
+  - path: /admin/overview
+    roles: [owner, admin, analyst]
+  - path: /admin/readiness
+    roles: [owner, admin]
+  - path: /admin/tenants
+    roles: [owner, admin, analyst]
+  - path: /admin/safety
+    roles: [owner, admin]
+  - path: /admin/billing
+    roles: [owner, admin, analyst]
+  - path: /admin/personas
+    roles: [owner, admin]
+  - path: /admin/incidents
+    roles: [owner, admin, developer, analyst]
+audit: enabled

@@ -1,0 +1,6 @@
+# Persona Assets Observability (sketch)
+# persona_assets_expected{persona="FRANK"} 8
+# persona_assets_present{persona="FRANK"} N
+# persona_asset_checksum_mismatch_total{persona="FRANK",filename=""}
+# ALERT PersonaAssetsMissing IF persona_assets_present{persona="FRANK"} < persona_assets_expected{persona="FRANK"}
+# ALERT PersonaManifestStale  IF time() - persona_manifest_generated_seconds > 86400

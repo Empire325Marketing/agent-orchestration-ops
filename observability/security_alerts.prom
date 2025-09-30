@@ -1,0 +1,7 @@
+# Security Alerts (sketch; text only)
+# ALERT CrossTenantAccess IF increase(security_cross_tenant_total[5m]) > 0
+# ALERT PromptInjection   IF increase(security_prompt_injection_total[5m]) > 0
+# ALERT AuditChainBreak   IF increase(audit_chain_break_total[15m]) > 0
+# ALERT ResidencyBreach   IF increase(residency_violation_total[5m]) > 0
+# ALERT BillingSpike      IF cost_anomaly_score > 4
+# ALERT FailedLoginsBurst IF sum_over_time(auth_fail_total[5m]) > 20

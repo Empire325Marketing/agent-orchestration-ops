@@ -1,0 +1,85 @@
+# Jurisdiction Matrix for HR AI Compliance
+# References: /srv/primarch/compliance/retention_matrix.yaml (base retention rules)
+# Extends retention matrix with additional HR record types for AI Act compliance
+
+hr_jurisdiction_matrix:
+  - record_type: time_attendance
+    jurisdiction: EU (GDPR)
+    legal_basis: ["Art 6(1)(b) - Employment contract", "Art 6(1)(c) - Legal obligation"]
+    min_years: 3
+    max_years: 7
+    residency: "EU-only preferred"
+    transfer_mechanism: ["SCCs/BCR"]
+    legal_hold_supported: true
+    deletion_runbook: "runbooks/delete-core-hr.md"
+    citation: "Working Time Directive 2003/88/EC, national labor laws"
+    owner: "HR Operations"
+    ai_processing_notes: "Automated attendance tracking, overtime calculations"
+
+  - record_type: benefits_medical
+    jurisdiction: US-Federal
+    legal_basis: ["HIPAA", "ERISA"]
+    min_years: 6
+    max_years: "indefinite (medical)"
+    residency: "US-only"
+    transfer_mechanism: ["Business Associate Agreements"]
+    legal_hold_supported: true
+    deletion_runbook: "runbooks/delete-payroll.md"
+    citation: "HIPAA § 164.530(j), ERISA § 107"
+    owner: "Benefits Administration"
+    ai_processing_notes: "Wellness program analytics, benefits optimization"
+
+  - record_type: performance_discipline
+    jurisdiction: Multi (GDPR/US-State)
+    legal_basis: ["Employment contract", "Legitimate interest"]
+    min_years: "Employment + 3y"
+    max_years: 7
+    residency: "Region-specific"
+    transfer_mechanism: ["SCCs", "State adequacy decisions"]
+    legal_hold_supported: true
+    deletion_runbook: "runbooks/delete-core-hr.md"
+    citation: "GDPR Art 6(1)(f), various state employment laws"
+    owner: "HR Operations"
+    ai_processing_notes: "Performance trend analysis, disciplinary pattern detection"
+
+  - record_type: recruitment_ai_enhanced
+    jurisdiction: EU (AI Act + GDPR)
+    legal_basis: ["Art 6(1)(a) - Consent", "Art 6(1)(f) - Legitimate interest"]
+    min_years: 1
+    max_years: 2
+    residency: "EU-only"
+    transfer_mechanism: ["N/A - EU only"]
+    legal_hold_supported: true
+    deletion_runbook: "runbooks/delete-recruitment.md"
+    citation: "EU AI Act Art 5, 6; GDPR Art 22"
+    owner: "Talent Acquisition"
+    ai_processing_notes: "High-risk AI system - automated CV screening, interview analysis"
+
+  - record_type: training_development
+    jurisdiction: Global
+    legal_basis: ["Employment contract", "Legitimate interest"]
+    min_years: "Employment duration"
+    max_years: "Employment + 2y"
+    residency: "Local jurisdiction"
+    transfer_mechanism: ["Varies by jurisdiction"]
+    legal_hold_supported: true
+    deletion_runbook: "runbooks/delete-core-hr.md"
+    citation: "Various employment and training regulations"
+    owner: "Learning & Development"
+    ai_processing_notes: "Skills gap analysis, personalized training recommendations"
+
+compliance_flags:
+  high_risk_ai:
+    - recruitment_ai_enhanced
+    - performance_discipline
+  gdpr_special_categories:
+    - benefits_medical
+  cross_border_restricted:
+    - benefits_medical
+    - recruitment_ai_enhanced
+
+notes:
+  - "AI Act Article 6 applies to recruitment_ai_enhanced as high-risk AI system"
+  - "Performance AI requires human oversight per GDPR Article 22"
+  - "Medical benefits data cannot leave jurisdiction without adequate protections"
+  - "Legal holds apply across all record types - see runbooks/legal-hold.md"

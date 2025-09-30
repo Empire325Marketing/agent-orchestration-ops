@@ -1,0 +1,61 @@
+# Prometheus Alert Rules for Primarch MVP
+# Error budget calculation: For 99.9% SLO, error_budget = 1 - 0.999 = 0.001
+# Burn rate = current_error_rate / error_budget
+
+groups:
+  - name: slo_alerts
+    interval: 30s
+    rules:
+      # Multi-window burn rate alert - 1 hour window (page)
+      - alert: HighErrorBurnRate1h
+        expr: |
+          (
+            sum(rate(errors_total[1h])) / sum(rate(requests_total[1h]))
+          ) / 0.001 > 2
+        for: 5m
+        labels:
+          severity: page
+          window: 1h
+        annotations:
+          summary: "Error budget burn rate >2x over 1 hour window"
+          description: "Burn rate is {{ $value }} (threshold: 2x) for 1h window"
+
+      # Multi-window burn rate alert - 6 hour window (warn)
+      - alert: ErrorBurnRate6h
+        expr: |
+          (
+            sum(rate(errors_total[6h])) / sum(rate(requests_total[6h]))
+          ) / 0.001 > 1
+        for: 15m
+        labels:
+          severity: warning
+          window: 6h
+        annotations:
+          summary: "Error budget burn rate >1x over 6 hour window"
+          description: "Burn rate is {{ $value }} (threshold: 1x) for 6h window"
+
+      # Trace coverage SLO
+      - alert: TraceCoverageLow
+        expr: |
+          sum(rate(traces_sampled[15m])) / sum(rate(requests_total[15m])) < 0.95
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Trace coverage below 95% SLO"
+          description: "Current trace coverage: {{ $value | humanizePercentage }}"
+
+      # Latency SLO breach
+      - alert: LatencyP95Breach
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (
+              rate(request_duration_ms_bucket[5m])
+            )
+          ) > 950
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 latency exceeds 950ms SLO"
+          description: "Current P95 latency: {{ $value }}ms (threshold: 950ms)"

@@ -1,0 +1,6 @@
+-- Cache Metrics (documentation-only)
+-- Hit rate by route (last 1h)
+-- SELECT route, sum(hits)::float / nullif(sum(hits+misses),0) AS hit_rate FROM cache_stats_1m
+-- WHERE ts > now()-interval '1 hour' GROUP BY 1 ORDER BY 2 DESC;
+-- Thundering herd candidates
+-- SELECT key, max(inflight) AS max_inflight FROM cache_coalesce WHERE ts > now()-interval '1 hour' GROUP BY 1 HAVING max(inflight) > 20;

@@ -1,0 +1,11 @@
+profiles:
+  standard_access:
+    datasets: [messages, tool_calls, embeddings, tickets]
+    pii_policy: minimize
+    redact: [secrets, auth_tokens]
+    schema_version: v1
+  invoices_only:
+    datasets: [invoices]
+    pii_policy: minimal
+    schema_version: v1
+notes: Profiles map to Ch.25 export views with masking and residency respected (Ch.30).

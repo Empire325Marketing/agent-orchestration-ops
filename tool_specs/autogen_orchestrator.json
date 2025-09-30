@@ -1,0 +1,319 @@
+{
+  "name": "autogen_orchestrator",
+  "version": "0.2.0",
+  "description": "AutoGen-based multi-agent orchestration tool for controlled agent workflows",
+  "type": "orchestration",
+  "category": "agents",
+  "provider": "microsoft",
+  "license": "MIT",
+  "commercial_use": true,
+  "agent_types": {
+    "planner": {
+      "role": "task_decomposition",
+      "description": "Breaks down complex tasks into executable steps",
+      "max_consecutive_replies": 3,
+      "human_input_mode": "NEVER"
+    },
+    "worker": {
+      "role": "task_execution",
+      "description": "Executes individual tasks with security constraints",
+      "max_consecutive_replies": 5,
+      "code_execution_enabled": true,
+      "sandbox_required": true
+    },
+    "checker": {
+      "role": "quality_validation",
+      "description": "Validates outputs and ensures quality standards",
+      "max_consecutive_replies": 2,
+      "human_input_mode": "NEVER"
+    }
+  },
+  "endpoints": {
+    "create_agent_group": {
+      "path": "/autogen/group/create",
+      "method": "POST",
+      "timeout_ms": 10000,
+      "max_retries": 2,
+      "rate_limit": {
+        "requests_per_minute": 30,
+        "burst_size": 5
+      }
+    },
+    "execute_workflow": {
+      "path": "/autogen/workflow/execute",
+      "method": "POST",
+      "timeout_ms": 300000,
+      "max_retries": 1,
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "burst_size": 2
+      }
+    },
+    "monitor_execution": {
+      "path": "/autogen/workflow/monitor/{workflow_id}",
+      "method": "GET",
+      "timeout_ms": 5000,
+      "max_retries": 3
+    },
+    "terminate_workflow": {
+      "path": "/autogen/workflow/terminate/{workflow_id}",
+      "method": "POST",
+      "timeout_ms": 10000,
+      "max_retries": 2
+    }
+  },
+  "input_schema": {
+    "execute_workflow": {
+      "type": "object",
+      "required": ["task", "agents", "constraints"],
+      "properties": {
+        "task": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 2000,
+          "description": "Task description to be executed by agents"
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["planner", "worker", "checker"]
+              },
+              "config": {
+                "type": "object",
+                "properties": {
+                  "llm_config": {"type": "object"},
+                  "system_message": {"type": "string"},
+                  "tools": {"type": "array", "items": {"type": "string"}}
+                }
+              }
+            }
+          },
+          "minItems": 2,
+          "maxItems": 5
+        },
+        "constraints": {
+          "type": "object",
+          "properties": {
+            "max_rounds": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            },
+            "timeout_seconds": {
+              "type": "integer",
+              "minimum": 30,
+              "maximum": 1800,
+              "default": 300
+            },
+            "security_level": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"],
+              "default": "medium"
+            },
+            "approval_required": {
+              "type": "boolean",
+              "default": false
+            },
+            "sandbox_isolation": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "trace_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9-]{36}$",
+          "description": "UUID for tracing workflow execution"
+        },
+        "tenant_id": {
+          "type": "string",
+          "description": "Tenant identifier for multi-tenant isolation"
+        }
+      }
+    }
+  },
+  "output_schema": {
+    "execute_workflow": {
+      "type": "object",
+      "required": ["success", "workflow_id"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Workflow execution success status"
+        },
+        "workflow_id": {
+          "type": "string",
+          "description": "Unique identifier for the workflow execution"
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "final_output": {"type": "string"},
+            "execution_steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "agent_type": {"type": "string"},
+                  "message": {"type": "string"},
+                  "timestamp": {"type": "string"},
+                  "execution_time_ms": {"type": "number"}
+                }
+              }
+            }
+          }
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "total_execution_time_ms": {"type": "number"},
+            "rounds_completed": {"type": "integer"},
+            "agents_involved": {"type": "integer"},
+            "security_events": {"type": "integer"},
+            "resource_usage": {
+              "type": "object",
+              "properties": {
+                "cpu_time_ms": {"type": "number"},
+                "memory_peak_mb": {"type": "number"},
+                "network_calls": {"type": "integer"}
+              }
+            }
+          }
+        },
+        "security_report": {
+          "type": "object",
+          "properties": {
+            "violations_detected": {"type": "integer"},
+            "sandbox_events": {"type": "array", "items": {"type": "string"}},
+            "approval_status": {"type": "string"},
+            "audit_trail": {"type": "array", "items": {"type": "object"}}
+          }
+        },
+        "error": {
+          "type": "string",
+          "description": "Error message if success=false"
+        }
+      }
+    }
+  },
+  "security_features": {
+    "docker_sandboxing": {
+      "enabled": true,
+      "container_isolation": true,
+      "resource_limits": {
+        "memory_mb": 1024,
+        "cpu_quota": 50000,
+        "timeout_seconds": 300
+      },
+      "network_isolation": true,
+      "filesystem_readonly": true
+    },
+    "kill_switch": {
+      "enabled": true,
+      "triggers": [
+        "resource_exhaustion",
+        "security_violation",
+        "manual_termination",
+        "timeout_exceeded"
+      ]
+    },
+    "audit_logging": {
+      "level": "comprehensive",
+      "events": [
+        "workflow_started",
+        "agent_message",
+        "tool_execution",
+        "security_event",
+        "workflow_completed"
+      ],
+      "retention_days": 90
+    },
+    "access_control": {
+      "rbac_enabled": true,
+      "tenant_isolation": true,
+      "tool_restrictions": true,
+      "approval_workflows": true
+    }
+  },
+  "resource_requirements": {
+    "cpu": {
+      "cores": 2,
+      "memory_mb": 4096
+    },
+    "gpu": {
+      "required": false,
+      "memory_mb": 0
+    },
+    "disk_space_mb": 2048,
+    "network": {
+      "bandwidth_mbps": 50,
+      "concurrent_connections": 20
+    }
+  },
+  "performance_metrics": {
+    "workflow_execution": {
+      "avg_completion_time_s": 45,
+      "p95_completion_time_s": 120,
+      "success_rate": 0.94
+    },
+    "agent_coordination": {
+      "avg_rounds_per_task": 3.5,
+      "communication_efficiency": 0.87
+    },
+    "resource_efficiency": {
+      "cpu_utilization": 0.65,
+      "memory_utilization": 0.70
+    }
+  },
+  "monitoring": {
+    "metrics": {
+      "autogen_workflows_total": "counter",
+      "autogen_execution_duration_seconds": "histogram",
+      "autogen_agents_active": "gauge",
+      "autogen_security_events_total": "counter",
+      "autogen_rounds_per_workflow": "histogram",
+      "autogen_resource_usage": "gauge"
+    },
+    "health_checks": {
+      "liveness": "/autogen/health",
+      "readiness": "/autogen/ready",
+      "agents_health": "/autogen/agents/status"
+    },
+    "alerts": {
+      "high_error_rate": ">5%",
+      "long_execution_time": "p95 >300s",
+      "security_violations": ">0",
+      "resource_exhaustion": ">90%"
+    }
+  },
+  "deployment": {
+    "container_image": "ghcr.io/primarch/autogen-orchestrator:latest",
+    "scaling": {
+      "min_replicas": 2,
+      "max_replicas": 8,
+      "target_cpu_utilization": 70
+    },
+    "environment_variables": {
+      "AUTOGEN_DOCKER_ENABLED": "true",
+      "AUTOGEN_MAX_ROUNDS": "20",
+      "AUTOGEN_TIMEOUT_SECONDS": "1800",
+      "AUTOGEN_SECURITY_LEVEL": "high"
+    }
+  },
+  "integration": {
+    "supports_streaming": false,
+    "webhook_support": true,
+    "batch_processing": true,
+    "api_compatibility": "autogen_v0.2"
+  },
+  "fallback": {
+    "primary": "single_agent_execution",
+    "conditions": ["orchestration_failure", "resource_exhaustion", "security_violation"],
+    "timeout_ms": 30000
+  }
+}

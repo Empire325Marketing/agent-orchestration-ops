@@ -1,0 +1,18 @@
+groups:
+- name: safety
+  rules:
+  - alert: SafetyJailbreakDetected
+    expr: safety_jailbreak_rate > 0
+    for: 15m
+    labels: {severity: critical}
+    annotations: {summary: "Jailbreak detected on curated set (Ch.17 gate)"}
+  - alert: SafetyPIILeakDetected
+    expr: safety_pii_leak_rate > 0
+    for: 15m
+    labels: {severity: critical}
+    annotations: {summary: "PII leak detected; block promotion; follow runbook"}
+  - alert: SafetyToxicitySpike
+    expr: safety_toxicity_rate > 0.01
+    for: 30m
+    labels: {severity: warning}
+    annotations: {summary: "Toxicity rate above threshold"}

@@ -1,0 +1,21 @@
+groups:
+- name: experiments
+  rules:
+  - alert: ExperimentGuardrailBreach
+    expr: (exp_error_rate / exp_error_rate_baseline) > 1.25 or (exp_p95_ms / exp_p95_baseline) > 1.2
+    for: 30m
+    labels: {severity: warning}
+    annotations:
+      summary: "Experiment guardrail regression (p95/error-rate)"
+  - alert: ExperimentSafetyFailed
+    expr: exp_safety_ok == 0
+    for: 15m
+    labels: {severity: critical}
+    annotations:
+      summary: "Safety gate failed for active variant"
+  - alert: ExperimentCostHeadroomLow
+    expr: exp_cost_headroom < 0.20
+    for: 30m
+    labels: {severity: warning}
+    annotations:
+      summary: "Cost headroom below 20% — consider downgrade/rollback"

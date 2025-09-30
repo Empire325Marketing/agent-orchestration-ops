@@ -1,0 +1,3 @@
+# Admin UI Alerts (sketch)
+# ALERT AdminUIDown IF probe_success{job="admin_ui"} == 0
+# ALERT AdminUIErrorSpike IF rate(http_requests_total{app="admin_ui",code=~"5.."}[5m]) > 5

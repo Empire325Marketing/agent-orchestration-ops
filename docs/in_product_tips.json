@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "tips": [
+    {
+      "id": "assist-route-intro",
+      "route": "/v1/assist",
+      "audience": "new_user",
+      "text": "Pro tip: keep tool lists minimal to reduce latency.",
+      "dismissible": true,
+      "frequency": "until_dismissed"
+    },
+    {
+      "id": "safety-redteam",
+      "route": "/console/safety",
+      "audience": "admin",
+      "text": "Run the curated safety set before promoting a new model.",
+      "dismissible": true,
+      "frequency": "once_per_release"
+    }
+  ]
+}

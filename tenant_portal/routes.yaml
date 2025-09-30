@@ -1,0 +1,22 @@
+# Tenant Portal Routes (logical; RBAC enforced via Ch.23)
+routes:
+  - path: /tenant/audit
+    method: GET
+    role: [owner, admin, analyst, viewer]
+    desc: Read-only audit trail filtered to tenant scope.
+  - path: /tenant/dsr
+    method: GET
+    role: [owner, admin]
+    desc: List DSR requests for tenant.
+  - path: /tenant/dsr
+    method: POST
+    role: [owner, admin]
+    desc: Create DSR request (access/export/delete/correction).
+  - path: /tenant/dsr/{id}
+    method: GET
+    role: [owner, admin]
+    desc: Request status; signed URLs for completed exports.
+  - path: /tenant/usage-glance
+    method: GET
+    role: [owner, admin, analyst]
+    desc: Read-only usage/billing summary sourced from Ch.24 rollups.

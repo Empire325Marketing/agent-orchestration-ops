@@ -1,0 +1,20 @@
+tenants:
+  default:
+    requests_per_hour: 50
+    burst_per_minute: 10
+    max_prompt_tokens: 8000
+    max_output_tokens: 1500
+    budget_daily_usd: 10
+
+overload_modes:
+  slow:
+    max_output_tokens: 800
+    temperature_cap: 0.3
+  stop:
+    reject_long_context: true
+    require_operator_override: true
+
+notes:
+  - "Aligns with brownout policy and burn-rate alerts"
+  - "Default tenant limits support MVP operations"
+  - "Overload modes provide graceful degradation under stress"

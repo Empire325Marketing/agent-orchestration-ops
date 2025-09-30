@@ -1,0 +1,75 @@
+# IAM Roles and Least-Privilege Policies
+# Logical role definitions - described, not executable code
+
+roles:
+  orchestrator-read-secrets:
+    name: "Orchestrator Secrets Reader"
+    description: "Read-only access for orchestrator service"
+    policies:
+      - action: read
+        paths:
+          - kv/primarch/app/api/*
+          - kv/primarch/app/llm/*
+          - kv/primarch/app/vector/*
+      - action: list
+        paths:
+          - kv/primarch/app/
+    constraints:
+      - "No write permissions"
+      - "Cannot access infrastructure secrets"
+      - "Token TTL: 8 hours"
+
+  gateway-proxy-keys:
+    name: "Gateway Proxy Key Reader"
+    description: "Read-only access to proxy credentials"
+    policies:
+      - action: read
+        paths:
+          - kv/primarch/infra/proxy/*
+      - action: list
+        paths:
+          - kv/primarch/infra/proxy/
+    constraints:
+      - "No write permissions"
+      - "Cannot access application secrets"
+      - "Token TTL: 12 hours"
+
+  telemetry-exporter:
+    name: "Telemetry Exporter"
+    description: "Read-only access to observability credentials"
+    policies:
+      - action: read
+        paths:
+          - kv/primarch/infra/observability/*
+      - action: list
+        paths:
+          - kv/primarch/infra/observability/
+    constraints:
+      - "No write permissions"
+      - "Limited to observability namespace"
+      - "Token TTL: 24 hours"
+
+  break-glass-admin:
+    name: "Break-Glass Administrator"
+    description: "Emergency access with dual approval"
+    policies:
+      - action: "*"
+        paths:
+          - kv/primarch/*
+      - action: audit
+        paths:
+          - sys/audit/*
+    constraints:
+      - "Time-boxed: 24 hours maximum"
+      - "Requires dual approval from authorized operators"
+      - "All actions audited with high priority"
+      - "No default assignment - activated only on demand"
+      - "Automatic revocation after time window"
+      - "Mandatory postmortem within 48 hours"
+
+policy_principles:
+  - "Default deny on all paths"
+  - "Explicit allow only for required operations"
+  - "Service accounts cannot escalate privileges"
+  - "Human operators require MFA for any role assumption"
+  - "All token requests logged with requestor identity"

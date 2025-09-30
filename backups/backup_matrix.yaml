@@ -1,0 +1,58 @@
+# Dataset backup policy matrix (MVP)
+# NOTE: No secrets stored here. Paths/URIs are conceptual.
+
+datasets:
+  postgres_primary:
+    rpo_minutes: 15
+    rto_minutes: 30
+    cadence:
+      base: daily_02:00
+      wal_archive: every_15m
+      verify: daily_03:30
+      restore_validation: daily_04:00
+    retention_days: 30
+    storage_tier: "local-encrypted + offsite-encrypted"
+    encryption: "AES-256 at rest; TLS in transit"
+    verify: ["checksum", "restore_validation"]
+    owner: "db-ops"
+    deletion_policy_ref: "compliance/retention_matrix.yaml"
+  vault_metadata_policies:
+    rpo_minutes: 1440
+    rto_minutes: 60
+    cadence:
+      snapshot: daily_01:30
+      verify: daily_02:00
+      restore_validation: weekly_sun_04:30
+    retention_days: 90
+    storage_tier: "offsite-encrypted"
+    encryption: "AES-256 at rest"
+    verify: ["checksum", "policy_parse"]
+    owner: "platform-sec"
+    notes: "No secrets exported; configs/policies only."
+  tool_registry_ci_metadata:
+    rpo_minutes: 1440
+    rto_minutes: 60
+    cadence:
+      export: daily_02:15
+      verify: daily_02:45
+    retention_days: 60
+    storage_tier: "offsite-standard"
+    encryption: "AES-256 at rest"
+    verify: ["checksum"]
+    owner: "platform-eng"
+  observability_dash_alerts:
+    rpo_minutes: 1440
+    rto_minutes: 30
+    cadence:
+      export: daily_00:30
+      verify: daily_01:00
+    retention_days: 60
+    storage_tier: "offsite-standard"
+    verify: ["checksum","lint_rules"]
+    owner: "sre"
+
+compliance:
+  legal_hold_respected: true
+  deletion_runbook: "runbooks/delete-data.md"
+  dsr_runbook: "runbooks/dsr.md"
+  audit_log: "DECISIONS.log"

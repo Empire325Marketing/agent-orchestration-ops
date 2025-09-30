@@ -1,0 +1,416 @@
+{
+  "name": "structured_output_validator",
+  "version": "1.0.0",
+  "description": "Instructor + Pydantic-based structured output validation and constrained decoding for LLMs",
+  "type": "validation",
+  "category": "agents",
+  "provider": "instructor-ai",
+  "license": "MIT",
+  "commercial_use": true,
+  "supported_models": {
+    "openai": ["gpt-4-turbo-preview", "gpt-4", "gpt-3.5-turbo"],
+    "anthropic": ["claude-3-opus", "claude-3-sonnet"],
+    "local": ["llama-cpp-python", "ollama"],
+    "azure": ["gpt-4", "gpt-35-turbo"],
+    "groq": ["mixtral-8x7b", "llama2-70b"]
+  },
+  "endpoints": {
+    "validate_structure": {
+      "path": "/validator/validate",
+      "method": "POST",
+      "timeout_ms": 30000,
+      "max_retries": 3,
+      "rate_limit": {
+        "requests_per_minute": 100,
+        "burst_size": 20
+      }
+    },
+    "generate_schema": {
+      "path": "/validator/schema/generate",
+      "method": "POST",
+      "timeout_ms": 5000,
+      "max_retries": 2,
+      "rate_limit": {
+        "requests_per_minute": 200,
+        "burst_size": 50
+      }
+    },
+    "constrained_completion": {
+      "path": "/validator/complete",
+      "method": "POST",
+      "timeout_ms": 60000,
+      "max_retries": 3,
+      "rate_limit": {
+        "requests_per_minute": 50,
+        "burst_size": 10
+      }
+    },
+    "batch_validate": {
+      "path": "/validator/batch",
+      "method": "POST",
+      "timeout_ms": 120000,
+      "max_retries": 2,
+      "rate_limit": {
+        "requests_per_minute": 20,
+        "burst_size": 5
+      }
+    }
+  },
+  "input_schema": {
+    "constrained_completion": {
+      "type": "object",
+      "required": ["messages", "response_model"],
+      "properties": {
+        "messages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string",
+                "enum": ["system", "user", "assistant"]
+              },
+              "content": {
+                "type": "string",
+                "maxLength": 10000
+              }
+            },
+            "required": ["role", "content"]
+          },
+          "minItems": 1,
+          "maxItems": 20
+        },
+        "response_model": {
+          "type": "string",
+          "description": "Pydantic model class name for output structure"
+        },
+        "model_config": {
+          "type": "object",
+          "properties": {
+            "model": {
+              "type": "string",
+              "default": "gpt-4-turbo-preview"
+            },
+            "temperature": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 2.0,
+              "default": 0.1
+            },
+            "max_tokens": {
+              "type": "integer",
+              "minimum": 50,
+              "maximum": 4096,
+              "default": 1024
+            },
+            "max_retries": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 5,
+              "default": 3
+            }
+          }
+        },
+        "validation_config": {
+          "type": "object",
+          "properties": {
+            "strict_validation": {
+              "type": "boolean",
+              "default": true
+            },
+            "allow_partial": {
+              "type": "boolean",
+              "default": false
+            },
+            "custom_validators": {
+              "type": "array",
+              "items": {"type": "string"}
+            }
+          }
+        },
+        "trace_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9-]{36}$"
+        },
+        "tenant_id": {
+          "type": "string",
+          "description": "Tenant identifier for isolation"
+        }
+      }
+    },
+    "validate_structure": {
+      "type": "object",
+      "required": ["data", "schema"],
+      "properties": {
+        "data": {
+          "type": "object",
+          "description": "Data to validate against schema"
+        },
+        "schema": {
+          "type": "object",
+          "description": "JSON schema for validation"
+        },
+        "strict_mode": {
+          "type": "boolean",
+          "default": true
+        },
+        "trace_id": {
+          "type": "string",
+          "pattern": "^[a-f0-9-]{36}$"
+        }
+      }
+    }
+  },
+  "output_schema": {
+    "constrained_completion": {
+      "type": "object",
+      "required": ["success", "validated_output"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Validation success status"
+        },
+        "validated_output": {
+          "type": "object",
+          "description": "Validated and structured output from LLM"
+        },
+        "validation_metadata": {
+          "type": "object",
+          "properties": {
+            "schema_compliance": {"type": "boolean"},
+            "validation_errors": {"type": "array", "items": {"type": "string"}},
+            "retry_count": {"type": "integer"},
+            "final_retry": {"type": "boolean"}
+          }
+        },
+        "llm_metadata": {
+          "type": "object",
+          "properties": {
+            "model_used": {"type": "string"},
+            "tokens_consumed": {
+              "type": "object",
+              "properties": {
+                "input_tokens": {"type": "integer"},
+                "output_tokens": {"type": "integer"},
+                "total_tokens": {"type": "integer"}
+              }
+            },
+            "processing_time_ms": {"type": "number"},
+            "temperature_used": {"type": "number"}
+          }
+        },
+        "trace_info": {
+          "type": "object",
+          "properties": {
+            "trace_id": {"type": "string"},
+            "validation_steps": {"type": "array"},
+            "execution_path": {"type": "string"}
+          }
+        },
+        "error": {
+          "type": "string",
+          "description": "Error message if success=false"
+        }
+      }
+    },
+    "validate_structure": {
+      "type": "object",
+      "required": ["valid", "errors"],
+      "properties": {
+        "valid": {
+          "type": "boolean",
+          "description": "Whether data passes validation"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "field": {"type": "string"},
+              "message": {"type": "string"},
+              "error_type": {"type": "string"},
+              "input_value": {"type": "string"}
+            }
+          }
+        },
+        "validated_data": {
+          "type": "object",
+          "description": "Clean, validated data if successful"
+        },
+        "validation_summary": {
+          "type": "object",
+          "properties": {
+            "fields_validated": {"type": "integer"},
+            "fields_failed": {"type": "integer"},
+            "validation_time_ms": {"type": "number"}
+          }
+        }
+      }
+    }
+  },
+  "predefined_models": {
+    "agent_action": {
+      "description": "Standard agent action structure",
+      "schema": {
+        "action_type": "string (enum)",
+        "tool_name": "string",
+        "parameters": "object",
+        "confidence": "float (0.0-1.0)",
+        "trace_id": "string (uuid)"
+      },
+      "validators": [
+        "action_type_whitelist",
+        "tool_name_validation",
+        "parameter_sanitization"
+      ]
+    },
+    "agent_plan": {
+      "description": "Multi-step agent execution plan",
+      "schema": {
+        "task_id": "string (uuid)",
+        "steps": "array[agent_action] (1-10 items)",
+        "estimated_duration": "integer",
+        "requires_approval": "boolean"
+      },
+      "validators": [
+        "step_count_limits",
+        "duration_estimates",
+        "approval_requirements"
+      ]
+    },
+    "security_assessment": {
+      "description": "Security risk assessment structure",
+      "schema": {
+        "risk_level": "string (enum: low|medium|high|critical)",
+        "threats_identified": "array[string]",
+        "mitigation_steps": "array[string]",
+        "approval_required": "boolean"
+      },
+      "validators": [
+        "risk_level_validation",
+        "threat_classification",
+        "mitigation_completeness"
+      ]
+    }
+  },
+  "validation_rules": {
+    "security_constraints": {
+      "no_code_injection": {
+        "enabled": true,
+        "patterns": ["eval\\(", "exec\\(", "__import__", "subprocess"]
+      },
+      "pii_detection": {
+        "enabled": true,
+        "types": ["ssn", "credit_card", "email", "phone"]
+      },
+      "content_filtering": {
+        "enabled": true,
+        "categories": ["harmful", "offensive", "inappropriate"]
+      }
+    },
+    "data_validation": {
+      "string_length_limits": {
+        "short_text": 100,
+        "medium_text": 1000,
+        "long_text": 10000
+      },
+      "numeric_ranges": {
+        "confidence_score": [0.0, 1.0],
+        "percentage": [0, 100],
+        "timeout_seconds": [1, 3600]
+      },
+      "format_validation": {
+        "uuid_pattern": "^[a-f0-9-]{36}$",
+        "email_pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+        "url_pattern": "^https?://[\\w\\-]+(\\.[\\w\\-]+)+([\\w\\-\\.,@?^=%&:/~\\+#]*[\\w\\-\\@?^=%&/~\\+#])?$"
+      }
+    }
+  },
+  "performance_optimization": {
+    "caching": {
+      "schema_cache": {
+        "enabled": true,
+        "ttl_seconds": 3600,
+        "max_size": 1000
+      },
+      "validation_cache": {
+        "enabled": true,
+        "ttl_seconds": 300,
+        "max_size": 5000
+      }
+    },
+    "batch_processing": {
+      "max_batch_size": 50,
+      "batch_timeout_ms": 60000,
+      "parallel_validation": true
+    }
+  },
+  "security": {
+    "input_sanitization": {
+      "enabled": true,
+      "html_escape": true,
+      "script_removal": true,
+      "sql_injection_prevention": true
+    },
+    "output_validation": {
+      "schema_enforcement": true,
+      "type_checking": true,
+      "constraint_validation": true
+    },
+    "audit_logging": {
+      "validation_attempts": true,
+      "security_violations": true,
+      "performance_metrics": true,
+      "retention_days": 30
+    }
+  },
+  "monitoring": {
+    "metrics": {
+      "validator_requests_total": "counter",
+      "validator_duration_seconds": "histogram",
+      "validator_errors_total": "counter",
+      "validator_retries_total": "counter",
+      "validator_schema_cache_hits": "counter",
+      "validator_validation_cache_hits": "counter",
+      "validator_token_usage_total": "counter"
+    },
+    "health_checks": {
+      "liveness": "/validator/health",
+      "readiness": "/validator/ready",
+      "schema_health": "/validator/schemas/status"
+    },
+    "alerts": {
+      "high_validation_failure_rate": ">10%",
+      "high_retry_rate": ">20%",
+      "security_violations": ">0",
+      "token_usage_spike": ">1000/min"
+    }
+  },
+  "deployment": {
+    "container_image": "ghcr.io/primarch/structured-output-validator:latest",
+    "scaling": {
+      "min_replicas": 2,
+      "max_replicas": 12,
+      "target_cpu_utilization": 70,
+      "target_memory_utilization": 80
+    },
+    "environment_variables": {
+      "INSTRUCTOR_DEBUG": "false",
+      "PYDANTIC_STRICT": "true",
+      "MAX_RETRIES": "3",
+      "VALIDATION_TIMEOUT": "30000"
+    }
+  },
+  "cost_estimates": {
+    "per_validation": 0.001,
+    "per_constrained_completion": 0.005,
+    "monthly_base_cost": 50,
+    "token_cost_multiplier": 1.1
+  },
+  "integration": {
+    "supports_streaming": false,
+    "webhook_support": true,
+    "batch_processing": true,
+    "api_compatibility": "instructor_v1.0"
+  }
+}

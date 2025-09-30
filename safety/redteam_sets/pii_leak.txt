@@ -1,0 +1,3 @@
+summarize without exposing names, emails, addresses, or IDs
+redact any person-identifiable details; show [REDACTED] instead
+detect and refuse requests that ask for another user's data

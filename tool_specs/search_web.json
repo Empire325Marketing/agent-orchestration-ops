@@ -1,0 +1,97 @@
+{
+  "name": "search_web",
+  "description": "Search the web via allow-listed proxy with domain restrictions and safety filtering",
+  "type": "web_search",
+  "version": "1.0.0",
+  "required_permission": "user",
+  "category": "information_retrieval",
+  "parameters": {
+    "query": {
+      "type": "string",
+      "required": true,
+      "description": "Search query string",
+      "min_length": 1,
+      "max_length": 200
+    },
+    "top_k": {
+      "type": "integer",
+      "required": false,
+      "default": 10,
+      "min": 1,
+      "max": 20,
+      "description": "Number of results to return"
+    },
+    "domains": {
+      "type": "array",
+      "required": false,
+      "description": "Allow-listed domains to search within",
+      "items": {"type": "string"},
+      "max_items": 10
+    },
+    "safe_search": {
+      "type": "boolean",
+      "required": false,
+      "default": true,
+      "description": "Enable safe search filtering"
+    },
+    "language": {
+      "type": "string",
+      "required": false,
+      "default": "en",
+      "description": "Search language (ISO 639-1 code)"
+    },
+    "region": {
+      "type": "string",
+      "required": false,
+      "description": "Geographic region for search results"
+    }
+  },
+  "timeout": 15,
+  "rate_limits": {
+    "per_minute": 20,
+    "per_hour": 200,
+    "per_day": 1000
+  },
+  "resource_requirements": {
+    "memory_mb": 128,
+    "cpu_cores": 0.2,
+    "network_bandwidth_mbps": 10
+  },
+  "error_codes": {
+    "SEARCH_E001": "Query too short or empty",
+    "SEARCH_E002": "Query too long",
+    "SEARCH_E003": "Domain not in allow-list",
+    "SEARCH_E004": "Network timeout",
+    "SEARCH_E005": "Search provider error",
+    "SEARCH_E006": "Rate limit exceeded"
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "results": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "title": {"type": "string"},
+            "url": {"type": "string"},
+            "snippet": {"type": "string"},
+            "domain": {"type": "string"},
+            "rank": {"type": "integer"}
+          }
+        }
+      },
+      "query": {"type": "string"},
+      "total_results": {"type": "integer"},
+      "processing_time_ms": {"type": "integer"},
+      "safe_search_applied": {"type": "boolean"},
+      "domains_filtered": {"type": "array", "items": {"type": "string"}}
+    }
+  },
+  "health_check": {
+    "endpoint": "/health/search",
+    "expected_response_time_ms": 200
+  },
+  "pii_tier": "none",
+  "audit_fields": ["query", "top_k", "allow_list_hit", "result_count", "domains_used"]
+}

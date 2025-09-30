@@ -1,0 +1,416 @@
+{
+  "name": "coqui_tts",
+  "version": "0.22.0",
+  "description": "Coqui TTS engine for text-to-speech synthesis with neural voice models",
+  "type": "tts",
+  "category": "speech",
+  "provider": "coqui-ai",
+  "license": "MPL-2.0",
+  "commercial_use": true,
+  "note": "Research recommends Piper TTS as primary for better CPU performance. Coqui TTS serves as high-quality alternative.",
+  "model_variants": {
+    "tts_models/en/ljspeech/tacotron2-DDC": {
+      "model_id": "tts_models/en/ljspeech/tacotron2-DDC",
+      "language": "en",
+      "dataset": "ljspeech",
+      "architecture": "tacotron2",
+      "quality": "high",
+      "speed": "medium",
+      "gpu_required": false,
+      "recommended": false
+    },
+    "tts_models/en/ljspeech/glow-tts": {
+      "model_id": "tts_models/en/ljspeech/glow-tts",
+      "language": "en",
+      "dataset": "ljspeech", 
+      "architecture": "glow-tts",
+      "quality": "high",
+      "speed": "fast",
+      "gpu_required": false,
+      "recommended": true
+    },
+    "tts_models/en/vctk/vits": {
+      "model_id": "tts_models/en/vctk/vits",
+      "language": "en",
+      "dataset": "vctk",
+      "architecture": "vits",
+      "quality": "very_high",
+      "speed": "medium",
+      "gpu_required": true,
+      "multi_speaker": true,
+      "recommended": true
+    },
+    "tts_models/multilingual/multi-dataset/xtts_v2": {
+      "model_id": "tts_models/multilingual/multi-dataset/xtts_v2",
+      "language": "multilingual",
+      "dataset": "multi-dataset",
+      "architecture": "xtts",
+      "quality": "very_high",
+      "speed": "medium",
+      "gpu_required": true,
+      "multi_speaker": true,
+      "voice_cloning": true,
+      "recommended": true
+    },
+    "tts_models/en/ljspeech/speedy-speech": {
+      "model_id": "tts_models/en/ljspeech/speedy-speech",
+      "language": "en", 
+      "dataset": "ljspeech",
+      "architecture": "speedy-speech",
+      "quality": "medium",
+      "speed": "very_fast",
+      "gpu_required": false,
+      "recommended": false
+    }
+  },
+  "endpoints": {
+    "synthesize": {
+      "path": "/tts/synthesize",
+      "method": "POST",
+      "timeout_ms": 15000,
+      "max_retries": 3,
+      "rate_limit": {
+        "requests_per_minute": 300,
+        "burst_size": 50
+      }
+    },
+    "synthesize_streaming": {
+      "path": "/tts/stream",
+      "method": "WebSocket",
+      "timeout_ms": 60000,
+      "max_retries": 1,
+      "rate_limit": {
+        "concurrent_streams": 15,
+        "max_text_length": 10000
+      }
+    },
+    "voice_clone": {
+      "path": "/tts/clone",
+      "method": "POST",
+      "timeout_ms": 120000,
+      "max_retries": 2,
+      "rate_limit": {
+        "requests_per_minute": 10,
+        "burst_size": 2
+      }
+    },
+    "list_voices": {
+      "path": "/tts/voices",
+      "method": "GET",
+      "timeout_ms": 5000,
+      "max_retries": 1
+    },
+    "health": {
+      "path": "/tts/health",
+      "method": "GET",
+      "timeout_ms": 5000,
+      "max_retries": 1
+    }
+  },
+  "input_schema": {
+    "synthesize": {
+      "type": "object",
+      "required": ["text"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000,
+          "description": "Text to synthesize into speech"
+        },
+        "model_name": {
+          "type": "string",
+          "default": "tts_models/en/ljspeech/glow-tts",
+          "description": "TTS model to use"
+        },
+        "speaker_idx": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Speaker index for multi-speaker models"
+        },
+        "speaker_wav": {
+          "type": "string",
+          "format": "base64",
+          "description": "Base64 encoded reference audio for voice cloning"
+        },
+        "language_idx": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Language index for multilingual models"
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 3.0,
+          "default": 1.0,
+          "description": "Speech speed multiplier"
+        },
+        "emotion": {
+          "type": "string",
+          "enum": ["neutral", "happy", "sad", "angry", "surprised"],
+          "default": "neutral",
+          "description": "Emotion for emotional TTS models"
+        },
+        "output_format": {
+          "type": "string",
+          "enum": ["wav", "mp3", "ogg"],
+          "default": "wav",
+          "description": "Output audio format"
+        },
+        "sample_rate": {
+          "type": "integer",
+          "enum": [16000, 22050, 24000, 48000],
+          "default": 22050,
+          "description": "Output sample rate"
+        },
+        "vocoder": {
+          "type": "string",
+          "description": "Vocoder model override"
+        },
+        "use_cuda": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use GPU acceleration if available"
+        }
+      }
+    },
+    "voice_clone": {
+      "type": "object", 
+      "required": ["text", "speaker_wav"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000,
+          "description": "Text to synthesize with cloned voice"
+        },
+        "speaker_wav": {
+          "type": "string",
+          "format": "base64",
+          "description": "Base64 encoded reference audio (5-30 seconds recommended)"
+        },
+        "language": {
+          "type": "string",
+          "default": "en",
+          "description": "Language for synthesis"
+        },
+        "cleanup_voice": {
+          "type": "boolean",
+          "default": true,
+          "description": "Apply voice cleanup preprocessing"
+        },
+        "split_sentences": {
+          "type": "boolean",
+          "default": true,
+          "description": "Split text into sentences for better quality"
+        }
+      }
+    }
+  },
+  "output_schema": {
+    "synthesize": {
+      "type": "object",
+      "required": ["success", "audio"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Synthesis success status"
+        },
+        "audio": {
+          "type": "string", 
+          "format": "base64",
+          "description": "Base64 encoded synthesized audio"
+        },
+        "audio_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL to download synthesized audio"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "duration_seconds": {"type": "number"},
+            "sample_rate": {"type": "integer"},
+            "channels": {"type": "integer"},
+            "format": {"type": "string"},
+            "file_size_bytes": {"type": "integer"},
+            "model_used": {"type": "string"},
+            "speaker_used": {"type": "string"},
+            "language": {"type": "string"}
+          }
+        },
+        "processing_info": {
+          "type": "object",
+          "properties": {
+            "processing_time_ms": {"type": "number"},
+            "rtf": {"type": "number"},
+            "device_used": {"type": "string", "enum": ["cpu", "cuda"]},
+            "characters_processed": {"type": "integer"},
+            "sentences_split": {"type": "integer"}
+          }
+        },
+        "error": {
+          "type": "string",
+          "description": "Error message if success=false"
+        }
+      }
+    },
+    "list_voices": {
+      "type": "object",
+      "properties": {
+        "success": {"type": "boolean"},
+        "voices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "model_name": {"type": "string"},
+              "language": {"type": "string"}, 
+              "dataset": {"type": "string"},
+              "architecture": {"type": "string"},
+              "multi_speaker": {"type": "boolean"},
+              "speaker_count": {"type": "integer"},
+              "quality_rating": {"type": "string"},
+              "gpu_required": {"type": "boolean"},
+              "description": {"type": "string"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "resource_requirements": {
+    "gpu": {
+      "memory_mb": 4096,
+      "compute_capability": "6.0+",
+      "preferred": true,
+      "fallback_available": true
+    },
+    "cpu": {
+      "cores": 4,
+      "memory_mb": 8192,
+      "performance": "acceptable"
+    },
+    "disk_space_mb": 5120,
+    "network": {
+      "bandwidth_mbps": 20,
+      "concurrent_connections": 20
+    }
+  },
+  "performance_metrics": {
+    "quality": {
+      "mos_score": 4.2,
+      "naturalness": "high",
+      "intelligibility": "very_high"
+    },
+    "latency": {
+      "rtf_gpu": 0.3,
+      "rtf_cpu": 1.8,
+      "first_audio_ms": 800,
+      "streaming_chunk_ms": 500
+    },
+    "throughput": {
+      "characters_per_second_gpu": 150,
+      "characters_per_second_cpu": 45,
+      "concurrent_synthesis": 15
+    }
+  },
+  "cost_estimates": {
+    "per_character_gpu": 0.00008,
+    "per_character_cpu": 0.0002,
+    "per_minute_audio": 0.015,
+    "monthly_base_cost": 200,
+    "scaling_factor": 1.4,
+    "voice_cloning_multiplier": 3.0
+  },
+  "security": {
+    "pii_flags": true,
+    "input_validation": true,
+    "text_content_filtering": true,
+    "max_text_length": 5000,
+    "supported_languages": ["en", "es", "fr", "de", "it", "pt", "pl", "tr", "ru", "nl", "cs", "ar", "zh", "ja", "hu", "ko"],
+    "voice_cloning_restrictions": true,
+    "content_policy": "strict"
+  },
+  "monitoring": {
+    "metrics": {
+      "tts_requests_total": "counter",
+      "tts_processing_duration_seconds": "histogram",
+      "tts_errors_total": "counter",
+      "tts_rtf_ratio": "histogram", 
+      "tts_active_synthesis": "gauge",
+      "tts_model_load_duration_seconds": "histogram",
+      "tts_characters_processed_total": "counter",
+      "tts_voice_cloning_requests_total": "counter"
+    },
+    "health_checks": {
+      "liveness": "/tts/health",
+      "readiness": "/tts/ready",
+      "model_health": "/tts/model/status",
+      "interval_seconds": 30
+    },
+    "alerts": {
+      "high_error_rate": ">2%",
+      "high_rtf": ">2.0 for GPU",
+      "high_latency": "p95 >3s",
+      "gpu_memory_high": ">80%",
+      "model_load_failure": "count >1",
+      "voice_cloning_failure": ">5%"
+    }
+  },
+  "deployment": {
+    "container_image": "ghcr.io/coqui-ai/tts:latest-gpu",
+    "model_loading": {
+      "lazy_loading": true,
+      "model_cache_dir": "/models/coqui-tts",
+      "download_models_on_start": ["tts_models/en/ljspeech/glow-tts"],
+      "gpu_memory_fraction": 0.5
+    },
+    "scaling": {
+      "min_replicas": 2,
+      "max_replicas": 8,
+      "target_gpu_utilization": 65,
+      "scale_up_threshold": "queue_length >8",
+      "scale_down_threshold": "queue_length <3"
+    },
+    "environment_variables": {
+      "TTS_MODEL": "tts_models/en/ljspeech/glow-tts",
+      "CUDA_VISIBLE_DEVICES": "0",
+      "TTS_CACHE_DIR": "/models/coqui-tts",
+      "MAX_CONCURRENT_REQUESTS": "8",
+      "ENABLE_VOICE_CLONING": "true"
+    }
+  },
+  "integration": {
+    "streaming_support": true,
+    "voice_cloning_support": true,
+    "multilingual_support": true,
+    "emotion_control": true,
+    "ssml_support": true,
+    "batch_processing": false
+  },
+  "alternatives": {
+    "primary_recommendation": "piper_tts",
+    "reason": "Better CPU performance and lower latency",
+    "fallback_to": "espeak_ng",
+    "conditions": ["gpu_unavailable", "model_load_failure", "high_memory_usage"]
+  },
+  "voice_cloning": {
+    "supported": true,
+    "model": "xtts_v2",
+    "min_reference_duration_s": 5,
+    "max_reference_duration_s": 30,
+    "quality_requirements": {
+      "sample_rate": 22050,
+      "format": "wav",
+      "noise_level": "low",
+      "single_speaker": true
+    },
+    "processing_time_multiplier": 3.0,
+    "ethical_guidelines": {
+      "consent_required": true,
+      "content_restrictions": true,
+      "usage_logging": true
+    }
+  }
+}

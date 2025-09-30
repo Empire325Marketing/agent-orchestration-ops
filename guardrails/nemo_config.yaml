@@ -1,0 +1,103 @@
+# NeMo Guardrails Configuration for Primarch
+# Multi-layer guardrails with enterprise policy integration
+
+models:
+  - type: main
+    engine: openai
+    model: gpt-4-turbo-preview
+    
+rails:
+  input:
+    flows:
+      - self check input
+      - enterprise policy check
+      - pii detection
+      - jailbreak detection
+  
+  output:
+    flows:
+      - self check output
+      - sensitive data redaction
+      - compliance validation
+  
+  dialog:
+    flows:
+      - topic adherence
+      - conversation flow control
+      - context validation
+  
+  retrieval:
+    flows:
+      - source verification
+      - content relevance check
+      - fact consistency validation
+  
+  execution:
+    flows:
+      - tool access validation
+      - resource usage monitoring
+      - audit logging
+
+# Custom guardrails configuration
+guardrails:
+  self_check_input:
+    enabled: true
+    model: gpt-4-turbo-preview
+    threshold: 0.8
+    
+  self_check_output:
+    enabled: true
+    model: gpt-4-turbo-preview
+    threshold: 0.8
+    
+  enterprise_policy:
+    enabled: true
+    policy_file: "/srv/primarch/policy/content_rules.yaml"
+    strict_mode: true
+    
+  pii_detection:
+    enabled: true
+    sensitivity_level: "high"
+    redaction_enabled: true
+    
+  jailbreak_detection:
+    enabled: true
+    model: "meta-llama/LlamaGuard-7b"
+    confidence_threshold: 0.8
+
+# Performance and reliability
+performance:
+  timeout_ms: 5000
+  max_retries: 2
+  cache_enabled: true
+  cache_ttl: 300
+  
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 100
+    burst_size: 20
+
+# Monitoring and logging
+monitoring:
+  metrics_enabled: true
+  detailed_logging: true
+  audit_trail: true
+  
+  log_level: "INFO"
+  log_format: "json"
+  
+  prometheus:
+    enabled: true
+    port: 9090
+    metrics_path: "/metrics"
+
+# Security settings
+security:
+  tenant_isolation: true
+  access_logging: true
+  sensitive_data_masking: true
+  
+  encryption:
+    enabled: true
+    algorithm: "AES-256-GCM"
+    key_rotation_days: 30

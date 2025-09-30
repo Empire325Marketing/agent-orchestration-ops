@@ -1,0 +1,113 @@
+{
+  "name": "echo",
+  "description": "Simple echo tool for testing and debugging tool adapter functionality",
+  "type": "utility",
+  "version": "1.0.0",
+  "required_permission": "user",
+  "category": "testing",
+  "parameters": {
+    "message": {
+      "type": "string",
+      "required": false,
+      "default": "Hello from Primarch!",
+      "description": "Message to echo back",
+      "max_length": 1000
+    },
+    "delay_ms": {
+      "type": "integer",
+      "required": false,
+      "default": 0,
+      "min": 0,
+      "max": 5000,
+      "description": "Delay before response in milliseconds"
+    },
+    "repeat_count": {
+      "type": "integer",
+      "required": false,
+      "default": 1,
+      "min": 1,
+      "max": 10,
+      "description": "Number of times to repeat the message"
+    },
+    "include_metadata": {
+      "type": "boolean",
+      "required": false,
+      "default": false,
+      "description": "Include execution metadata in response"
+    }
+  },
+  "timeout": 10,
+  "rate_limits": {
+    "per_minute": 100,
+    "per_hour": 1000,
+    "per_day": 10000
+  },
+  "resource_requirements": {
+    "memory_mb": 16,
+    "cpu_cores": 0.1,
+    "disk_temp_mb": 0
+  },
+  "error_codes": {
+    "ECHO_E001": "Message too long",
+    "ECHO_E002": "Invalid repeat count",
+    "ECHO_E003": "Delay timeout exceeded"
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "echo": {
+        "type": "string",
+        "description": "The echoed message"
+      },
+      "timestamp": {
+        "type": "string",
+        "format": "date-time",
+        "description": "Response timestamp"
+      },
+      "execution_metadata": {
+        "type": "object",
+        "description": "Optional execution metadata",
+        "properties": {
+          "processing_time_ms": {"type": "integer"},
+          "delay_applied_ms": {"type": "integer"},
+          "repeat_count": {"type": "integer"},
+          "message_length": {"type": "integer"}
+        }
+      }
+    }
+  },
+  "health_check": {
+    "endpoint": "/health/echo",
+    "expected_response_time_ms": 10
+  },
+  "usage_examples": [
+    {
+      "description": "Basic echo",
+      "input": {
+        "message": "Hello World"
+      },
+      "expected_output": {
+        "echo": "Hello World",
+        "timestamp": "2025-09-30T16:00:00.000Z"
+      }
+    },
+    {
+      "description": "Echo with delay and metadata",
+      "input": {
+        "message": "Testing",
+        "delay_ms": 500,
+        "include_metadata": true
+      },
+      "expected_output": {
+        "echo": "Testing",
+        "timestamp": "2025-09-30T16:00:00.500Z",
+        "execution_metadata": {
+          "processing_time_ms": 502,
+          "delay_applied_ms": 500,
+          "repeat_count": 1,
+          "message_length": 7
+        }
+      }
+    }
+  ]
+}

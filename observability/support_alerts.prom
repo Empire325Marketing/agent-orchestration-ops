@@ -1,0 +1,17 @@
+groups:
+- name: support_alerts
+  rules:
+  - alert: SLAResponseBreachingP1
+    expr: sum(support_p1_unacked_minutes) > 15
+    for: 5m
+    labels: {severity="page"}
+    annotations:
+      summary: "P1 SLA response breach risk"
+      runbook: "support/ops_playbook.md"
+  - alert: BacklogAging
+    expr: ns:backlog_age_p95_hours > 72
+    for: 30m
+    labels: {severity="ticket"}
+    annotations:
+      summary: "Support backlog aging over 72h (p95)"
+      runbook: "runbooks/overload.md"

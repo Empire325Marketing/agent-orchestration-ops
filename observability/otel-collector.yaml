@@ -1,0 +1,52 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  tail_sampling:
+    decision_wait: 30s
+    num_traces: 10000
+    policies:
+      - name: always_sample_errors
+        type: status_code
+        status_code:
+          status_codes: [ERROR]
+        decision_wait: 10s
+        sampling_percentage: 100
+      - name: high_latency
+        type: latency
+        latency:
+          threshold_ms: 800
+        decision_wait: 20s
+        sampling_percentage: 50
+      - name: probabilistic_default
+        type: probabilistic
+        probabilistic:
+          sampling_percentage: 10
+
+exporters:
+  logging:
+    loglevel: info
+    sampling_initial: 10
+    sampling_thereafter: 100
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [tail_sampling]
+      exporters: [logging]
+    metrics:
+      receivers: [otlp]
+      exporters: [logging]
+    logs:
+      receivers: [otlp]
+      exporters: [logging]
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: detailed
+      address: 0.0.0.0:8888

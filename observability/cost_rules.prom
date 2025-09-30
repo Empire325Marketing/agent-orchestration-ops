@@ -1,0 +1,162 @@
+# Cost Guardrails Prometheus Alerting Rules
+# Reference: CH12_COST_GUARDRAILS.md, cost/cost_policy.md
+
+groups:
+  - name: cost_guardrails
+    rules:
+      # Daily spend exceeding plan
+      - alert: DailySpendExceedsPlan
+        expr: |
+          (
+            sum by (tenant_id) (
+              increase(cost_total_usd{job="primarch-gateway"}[24h])
+            )
+          ) > on(tenant_id) (
+            tenant_daily_budget_usd * 0.8
+          )
+        for: 5m
+        labels:
+          severity: warning
+          component: cost-guardrails
+        annotations:
+          summary: "Tenant {{ $labels.tenant_id }} approaching daily budget"
+          description: "Daily spend ${{ $value }} exceeds 80% of budget for tenant {{ $labels.tenant_id }}"
+          runbook_url: "/srv/primarch/runbooks/cost-guardrails.md"
+
+      - alert: DailySpendExceedsBudget
+        expr: |
+          (
+            sum by (tenant_id) (
+              increase(cost_total_usd{job="primarch-gateway"}[24h])
+            )
+          ) > on(tenant_id) tenant_daily_budget_usd
+        for: 1m
+        labels:
+          severity: critical
+          component: cost-guardrails
+        annotations:
+          summary: "Tenant {{ $labels.tenant_id }} exceeded daily budget"
+          description: "Daily spend ${{ $value }} exceeds budget for tenant {{ $labels.tenant_id }}"
+          runbook_url: "/srv/primarch/runbooks/cost-guardrails.md"
+
+      # Minute-rate spike detection
+      - alert: CostRateSpike
+        expr: |
+          (
+            rate(cost_total_usd{job="primarch-gateway"}[5m]) * 60
+          ) > (
+            avg_over_time(
+              rate(cost_total_usd{job="primarch-gateway"}[5m])[1h:5m]
+            ) * 60 * 5
+          )
+        for: 2m
+        labels:
+          severity: warning
+          component: cost-guardrails
+        annotations:
+          summary: "Cost rate spike detected for tenant {{ $labels.tenant_id }}"
+          description: "Current cost rate ${{ $value }}/min is 5x baseline for tenant {{ $labels.tenant_id }}"
+          runbook_url: "/srv/primarch/runbooks/cost-guardrails.md"
+
+      # Per-tenant anomaly detection
+      - alert: TenantCostAnomaly
+        expr: |
+          (
+            sum by (tenant_id) (
+              rate(cost_total_usd{job="primarch-gateway"}[10m])
+            )
+          ) > (
+            avg_over_time(
+              sum by (tenant_id) (
+                rate(cost_total_usd{job="primarch-gateway"}[10m])
+              )[6h:10m]
+            ) * 3
+          )
+        for: 5m
+        labels:
+          severity: warning
+          component: cost-guardrails
+        annotations:
+          summary: "Cost anomaly for tenant {{ $labels.tenant_id }}"
+          description: "Cost rate is 3x higher than 6h average for tenant {{ $labels.tenant_id }}"
+          runbook_url: "/srv/primarch/runbooks/cost-guardrails.md"
+
+      # Budget burn rate prediction
+      - alert: BudgetWillExceedToday
+        expr: |
+          (
+            sum by (tenant_id) (
+              increase(cost_total_usd{job="primarch-gateway"}[4h])
+            ) * 6
+          ) > on(tenant_id) tenant_daily_budget_usd
+        for: 10m
+        labels:
+          severity: warning
+          component: cost-guardrails
+        annotations:
+          summary: "Tenant {{ $labels.tenant_id }} projected to exceed daily budget"
+          description: "Current 4h burn rate projects ${{ $value }} total daily spend for tenant {{ $labels.tenant_id }}"
+          runbook_url: "/srv/primarch/runbooks/cost-guardrails.md"
+
+      # Emergency circuit breaker
+      - alert: EmergencyCostCircuitBreaker
+        expr: |
+          (
+            rate(cost_total_usd{job="primarch-gateway"}[1m]) * 60
+          ) > (
+            tenant_daily_budget_usd / 24 * 10
+          )
+        for: 30s
+        labels:
+          severity: critical
+          component: cost-guardrails
+          emergency: "true"
+        annotations:
+          summary: "Emergency cost circuit breaker for tenant {{ $labels.tenant_id }}"
+          description: "Cost rate ${{ $value }}/min is 10x hourly budget - immediate intervention required"
+          runbook_url: "/srv/primarch/runbooks/cost-guardrails.md"
+
+      # Cross-reference with existing burn-rate playbook
+      - alert: CostBurnRateCoordination
+        expr: |
+          (
+            sum by (tenant_id) (
+              rate(cost_total_usd{job="primarch-gateway"}[1h])
+            )
+          ) > (
+            tenant_daily_budget_usd / 24 * 2
+          )
+        for: 5m
+        labels:
+          severity: warning
+          component: cost-guardrails
+          coordinate_with: burn-rate-response
+        annotations:
+          summary: "Cost burn rate coordination needed for tenant {{ $labels.tenant_id }}"
+          description: "High cost burn rate may correlate with error budget burn - check both systems"
+          runbook_url: "/srv/primarch/runbooks/burn-rate-response.md"
+
+  # Recording rules for cost metrics
+  - name: cost_recording_rules
+    rules:
+      - record: tenant_cost_burn_rate
+        expr: |
+          sum by (tenant_id) (
+            rate(cost_total_usd{job="primarch-gateway"}[5m])
+          )
+
+      - record: tenant_daily_budget_utilization
+        expr: |
+          (
+            sum by (tenant_id) (
+              increase(cost_total_usd{job="primarch-gateway"}[24h])
+            )
+          ) / on(tenant_id) tenant_daily_budget_usd
+
+      - record: tenant_hourly_budget_utilization
+        expr: |
+          (
+            sum by (tenant_id) (
+              increase(cost_total_usd{job="primarch-gateway"}[1h])
+            )
+          ) / on(tenant_id) (tenant_daily_budget_usd / 24)

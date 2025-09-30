@@ -1,0 +1,61 @@
+# Vulnerability Management Alerts
+
+groups:
+- name: vulnerability_management
+  rules:
+  
+  # Critical vulnerability detected
+  - alert: CriticalVulnerabilityDetected
+    expr: vuln_severity_count{severity="critical"} > 0
+    for: 0s
+    labels:
+      severity: critical
+      team: security
+    annotations:
+      summary: "Critical vulnerability detected in {{ $labels.component }}"
+      description: "CVE {{ $labels.cve_id }} affects {{ $labels.component }}@{{ $labels.version }}"
+      runbook: "runbooks/vuln-triage.md"
+      
+  # SLA breach warning
+  - alert: VulnerabilitySLABreach
+    expr: (time() - vuln_first_seen) > (vuln_sla_seconds * 0.8)
+    for: 5m
+    labels:
+      severity: warning
+      team: security
+    annotations:
+      summary: "Vulnerability SLA approaching breach"
+      description: "{{ $labels.cve_id }} in {{ $labels.component }} will breach SLA in {{ $value }}s"
+      
+  # Patch window overdue
+  - alert: PatchWindowOverdue
+    expr: (time() - last_patch_window) > (7 * 24 * 3600)
+    for: 1h
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "Patch window overdue"
+      description: "Last patch window was {{ $value | humanizeDuration }} ago"
+      
+  # SBOM coverage low
+  - alert: SBOMCoverageLow
+    expr: sbom_coverage_percent < 95
+    for: 10m
+    labels:
+      severity: warning
+      team: security
+    annotations:
+      summary: "SBOM coverage below threshold"
+      description: "Current SBOM coverage is {{ $value }}%, target is ≥95%"
+      
+  # Vulnerability scan stale
+  - alert: VulnerabilityScanStale
+    expr: (time() - last_vuln_scan) > (25 * 3600)
+    for: 5m
+    labels:
+      severity: warning
+      team: security
+    annotations:
+      summary: "Vulnerability scan data is stale"
+      description: "Last scan was {{ $value | humanizeDuration }} ago, should be <24h"

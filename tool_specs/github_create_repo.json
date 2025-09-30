@@ -1,0 +1,32 @@
+{
+  "name": "github_create_repo",
+  "description": "Create a new GitHub repository via API",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Repository name",
+        "maxLength": 100
+      },
+      "description": {
+        "type": "string",
+        "description": "Repository description",
+        "maxLength": 255
+      },
+      "private": {
+        "type": "boolean",
+        "description": "Whether repository is private",
+        "default": true
+      },
+      "visibility": {
+        "type": "string",
+        "enum": ["public", "private", "internal"],
+        "default": "private"
+      }
+    },
+    "required": ["name"]
+  },
+  "pii_tier": "none",
+  "audit_fields": ["tenant_id", "repo_name", "visibility"]
+}

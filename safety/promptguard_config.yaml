@@ -1,0 +1,168 @@
+# PromptGuard v2 Configuration
+version: 2
+
+global:
+  max_input_chars: 50000
+  max_output_chars: 100000
+  processing_timeout_ms: 5000
+  allow_tools:
+    - "web_search"
+    - "calculator" 
+    - "weather"
+    - "file_reader"
+    - "image_generator"
+  deny_tools:
+    - "shell_executor"
+    - "database_connector"
+    - "file_writer"
+    - "network_scanner"
+  egress_policy: "proxy_only"  # Ch.6 integration
+  audit_level: "comprehensive"
+
+detectors:
+  jailbreak:
+    enabled: true
+    sensitivity: "high"
+    patterns:
+      - "ignore previous instructions"
+      - "act as if you are"
+      - "pretend to be"
+      - "roleplay as"
+      - "disregard safety"
+    ml_model: "jailbreak_classifier_v2"
+    confidence_threshold: 0.8
+    
+  pii:
+    enabled: true
+    sensitivity: "medium"
+    types:
+      - "ssn"
+      - "credit_card"
+      - "email"
+      - "phone"
+      - "address"
+    masking_strategy: "redaction"
+    preserve_format: true
+    
+  secrets:
+    enabled: true
+    sensitivity: "high"
+    patterns:
+      - "api_key_pattern"
+      - "password_pattern" 
+      - "token_pattern"
+      - "certificate_pattern"
+    entropy_threshold: 4.5
+    
+  command_shell:
+    enabled: true
+    sensitivity: "high"
+    shells:
+      - "bash"
+      - "cmd"
+      - "powershell"
+      - "zsh"
+    commands:
+      - "rm"
+      - "del"
+      - "format"
+      - "wget"
+      - "curl"
+    
+  sql_injection:
+    enabled: true
+    sensitivity: "medium"
+    patterns:
+      - "union select"
+      - "drop table"
+      - "'; --"
+      - "or 1=1"
+    database_keywords: true
+
+actions:
+  block:
+    response: "I cannot process that request due to safety policies."
+    log_level: "warning"
+    notify_admin: true
+    
+  mask:
+    replacement_char: "*"
+    preserve_length: true
+    log_original: false
+    
+  route_safe_model:
+    model: "safety_focused_llm"
+    max_retries: 3
+    escalate_on_failure: true
+    
+  human_review:
+    queue: "security_review"
+    priority: "high"
+    timeout_hours: 24
+
+profiles:
+  promptguard_v2:
+    description: "Default FRANK persona firewall profile"
+    detectors:
+      jailbreak:
+        action: "block"
+        threshold: 0.7
+      pii:
+        action: "mask"
+        threshold: 0.6
+      secrets:
+        action: "block"
+        threshold: 0.9
+      command_shell:
+        action: "block"
+        threshold: 0.8
+      sql_injection:
+        action: "block"
+        threshold: 0.7
+    
+    tool_restrictions:
+      max_calls_per_session: 10
+      allowed_domains: []  # Use Ch.6 proxy allowlist
+      output_size_limit: 10000
+      
+    persona_enforcement:
+      voice_consistency: true
+      directive_compliance: true
+      knowledge_boundaries: true
+      
+  # Additional profiles for future personas
+  strict_security:
+    description: "High-security profile for sensitive environments"
+    detectors:
+      jailbreak:
+        action: "block"
+        threshold: 0.5
+      pii:
+        action: "block"
+        threshold: 0.4
+    
+# Integration Configuration
+integrations:
+  proxy_service:
+    enabled: true
+    allowlist_check: true
+    dns_validation: true
+    
+  audit_logging:
+    enabled: true
+    log_all_requests: true
+    log_blocked_content: true
+    retention_days: 90
+    
+  safety_evaluations:
+    enabled: true
+    real_time_scoring: true
+    batch_validation: true
+    
+  rbac_system:
+    enabled: true
+    role_based_rules: true
+    permission_inheritance: true
+
+# TODO: Reference external firewall shell if available
+# external_shell: "PromptGuard_v2_Firewall_Shell.txt"

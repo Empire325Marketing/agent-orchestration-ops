@@ -1,0 +1,11 @@
+name: tool_calls
+schema:
+  - {name: call_id,    type: uuid, required: true}
+  - {name: request_id, type: uuid, required: true}
+  - {name: tool_name,  type: text, required: true}
+  - {name: status,     type: enum[ok,error,timeout], required: true}
+  - {name: latency_ms, type: int, required: true}
+  - {name: created_at, type: timestamptz, required: true}
+invariants:
+  - "latency_ms >= 0"
+  - "status in ('ok','error','timeout')"

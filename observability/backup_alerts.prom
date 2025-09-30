@@ -1,0 +1,14 @@
+# Prometheus alert sketches for backup health (conceptual)
+groups:
+- name: backup-health
+  rules:
+  - alert: BackupTooOld
+    expr: time() - backup_last_success_seconds{dataset="postgres_primary"} > 2 * 3600
+    for: 15m
+    labels: {severity: warning}
+    annotations: {summary: "Postgres backup freshness breach"}
+  - alert: RestoreValidationFailed
+    expr: restore_validation_status{dataset="postgres_primary"} == 0
+    for: 5m
+    labels: {severity: critical}
+    annotations: {summary: "Restore validation failing"}

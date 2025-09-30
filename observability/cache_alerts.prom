@@ -1,0 +1,5 @@
+# Cache Alerts (text sketches)
+# ALERT CacheHitRateLow       IF cache_hit_rate < 0.40 FOR 30m
+# ALERT CacheTTLAbuse         IF cache_bypass_rate > 0.30 FOR 15m
+# ALERT CacheHerdRisk         IF inflight_coalesced_groups > 50
+# ALERT CacheErrorSpike       IF cache_store_errors > 10/min

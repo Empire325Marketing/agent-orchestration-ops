@@ -1,0 +1,7 @@
+-- Security Query Sketches (documentation only)
+-- 1) Cross-tenant attempts last 24h
+-- SELECT ts, actor_id, labels->>'tenant' AS tenant, details FROM audit WHERE labels->>'cross_tenant'='true' AND ts>now()-interval '24h';
+-- 2) Failed login bursts
+-- SELECT user_id, count(*) FROM auth WHERE outcome='failure' AND ts>now()-interval '5m' GROUP BY user_id HAVING count(*)>5;
+-- 3) Prompt injection hits by route
+-- SELECT route, count(*) FROM firewall WHERE rule='prompt_injection' AND ts>now()-interval '1h' GROUP BY route;

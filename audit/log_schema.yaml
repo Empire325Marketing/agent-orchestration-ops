@@ -1,0 +1,24 @@
+# Audit Log Schema (documentation; not executed)
+fields:
+  ts:               { type: timestamptz, desc: "event time (UTC)" }
+  region:           { type: text, desc: "us|eu (Ch.30)" }
+  tenant_id:        { type: text, desc: "logical tenant/org id" }
+  actor:            { type: text, desc: "user/service principal" }
+  family:           { type: text, desc: "see event_catalog.yaml" }
+  action:           { type: text, desc: "verb" }
+  resource:         { type: text, desc: "entity path/id" }
+  status:           { type: text, desc: "ok|err" }
+  trace_id:         { type: text, desc: "link to tracing (Ch.7)" }
+  hash_prev:        { type: text, desc: "hex digest of previous record in partition" }
+  hash_cur:         { type: text, desc: "hex digest of current record" }
+  partition_key:    { type: date, desc: "daily partition for rotation/anchor" }
+  signer_key_id:    { type: text, desc: "optional; for batch/anchor signatures" }
+retention:
+  hot_days: 30
+  warm_days: 365
+  legal_hold_respected: true
+indexes:
+  - ts
+  - tenant_id
+  - family
+  - trace_id

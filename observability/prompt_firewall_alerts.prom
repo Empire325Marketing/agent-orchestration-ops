@@ -1,0 +1,166 @@
+groups:
+- name: prompt_firewall_alerts
+  rules:
+  # Spike in firewall blocks
+  - alert: PromptFirewallBlocksSpike
+    expr: |
+      (
+        rate(prompt_firewall_blocks_total[5m]) 
+      ) > (
+        rate(prompt_firewall_blocks_total[1h]) * 5
+      )
+    for: 3m
+    labels: {severity: warning}
+    annotations:
+      summary: "Prompt firewall blocks spiked {{$value}}/min"
+      description: "Block rate 5x above hourly average, possible attack"
+      runbook: "runbooks/prompt-firewall-hotfix.md"
+
+  # High firewall block rate
+  - alert: PromptFirewallHighBlockRate
+    expr: |
+      (
+        rate(prompt_firewall_blocks_total[15m]) /
+        rate(prompt_firewall_requests_total[15m])
+      ) > 0.1
+    for: 10m
+    labels: {severity: warning}
+    annotations:
+      summary: "Prompt firewall block rate >10%"
+      description: "{{$value}}% of requests blocked in last 15min"
+      runbook: "runbooks/prompt-firewall-hotfix.md"
+
+  # Persona drift detected
+  - alert: PersonaDriftDetected
+    expr: |
+      persona_consistency_score < 0.8
+    for: 5m
+    labels: {severity: warning}
+    annotations:
+      summary: "FRANK persona consistency below threshold"
+      description: "Persona score {{$value}}, expected >0.8"
+      runbook: "runbooks/persona-patch.md"
+
+  # Unsafe tool invocation
+  - alert: UnsafeToolInvocation
+    expr: |
+      increase(prompt_firewall_tool_blocks_total[5m]) > 0
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "Unsafe tool invocation blocked"
+      description: "{{$labels.tool}} blocked for {{$labels.reason}}"
+      runbook: "runbooks/prompt-firewall-hotfix.md"
+
+  # Egress bypass attempt
+  - alert: EgressBypassAttempt
+    expr: |
+      increase(prompt_firewall_egress_blocks_total[5m]) > 0
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "Egress bypass attempt detected"
+      description: "Attempt to access {{$labels.blocked_domain}}"
+      runbook: "runbooks/prompt-firewall-hotfix.md"
+
+  # PII exposure risk
+  - alert: PIIExposureRisk
+    expr: |
+      increase(prompt_firewall_pii_detections_total[5m]) > 5
+    for: 2m
+    labels: {severity: warning}
+    annotations:
+      summary: "High PII detection rate"
+      description: "{{$value}} PII instances detected in 5min"
+      runbook: "runbooks/prompt-firewall-hotfix.md"
+
+  # Jailbreak attempt patterns
+  - alert: JailbreakAttemptPattern
+    expr: |
+      increase(prompt_firewall_jailbreak_blocks_total[10m]) >= 3
+    for: 1m
+    labels: {severity: warning}
+    annotations:
+      summary: "Multiple jailbreak attempts from {{$labels.tenant_id}}"
+      description: "{{$value}} jailbreak attempts in 10min"
+      runbook: "runbooks/prompt-firewall-hotfix.md"
+
+  # Firewall processing latency high
+  - alert: PromptFirewallLatencyHigh
+    expr: |
+      histogram_quantile(0.95, 
+        sum(rate(prompt_firewall_processing_duration_bucket[5m])) by (le)
+      ) > 2.0
+    for: 5m
+    labels: {severity: warning}
+    annotations:
+      summary: "Prompt firewall processing latency high"
+      description: "P95 latency {{$value}}s, impacting user experience"
+
+  # Firewall rule coverage low
+  - alert: FirewallRuleCoverageLow
+    expr: |
+      (
+        sum(prompt_firewall_rule_matches_total) /
+        sum(prompt_firewall_requests_total)
+      ) < 0.95
+    for: 30m
+    labels: {severity: warning}
+    annotations:
+      summary: "Firewall rule coverage below 95%"
+      description: "{{$value}}% coverage, may have rule gaps"
+
+  # Persona asset validation failure
+  - alert: PersonaAssetValidationFailed
+    expr: |
+      persona_asset_validation_failures > 0
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "FRANK persona asset validation failed"
+      description: "{{$labels.asset}} failed {{$labels.check_type}} validation"
+      runbook: "runbooks/persona-patch.md"
+
+  # Firewall configuration drift
+  - alert: FirewallConfigurationDrift
+    expr: |
+      prompt_firewall_config_version != prompt_firewall_expected_version
+    for: 15m
+    labels: {severity: warning}
+    annotations:
+      summary: "Firewall configuration version mismatch"
+      description: "Running v{{$labels.current}}, expected v{{$labels.expected}}"
+      runbook: "runbooks/persona-change-control.md"
+
+  # Safety evaluation failures
+  - alert: PromptFirewallSafetyEvalFailures
+    expr: |
+      increase(prompt_firewall_safety_eval_failures_total[1h]) > 0
+    for: 1m
+    labels: {severity: critical}
+    annotations:
+      summary: "Prompt firewall safety evaluation failures"
+      description: "{{$value}} safety eval failures in past hour"
+      runbook: "runbooks/prompt-firewall-hotfix.md"
+
+# Recording rules for firewall metrics
+- name: prompt_firewall_recording
+  rules:
+  - record: prompt_firewall:block_rate_5m
+    expr: |
+      rate(prompt_firewall_blocks_total[5m]) /
+      rate(prompt_firewall_requests_total[5m])
+  
+  - record: prompt_firewall:avg_latency_5m
+    expr: |
+      rate(prompt_firewall_processing_duration_sum[5m]) /
+      rate(prompt_firewall_processing_duration_count[5m])
+  
+  - record: persona:consistency_score_5m
+    expr: |
+      avg_over_time(persona_consistency_score[5m])
+  
+  - record: prompt_firewall:rule_coverage_1h
+    expr: |
+      sum(rate(prompt_firewall_rule_matches_total[1h])) /
+      sum(rate(prompt_firewall_requests_total[1h]))

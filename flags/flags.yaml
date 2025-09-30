@@ -1,0 +1,30 @@
+# Feature flags (MVP)
+schema:
+  flag:
+    required: [key, owner, default]
+    fields: [key, description, owner, default, expires, links, notes]
+flags:
+  - key: feature.model_routing.v1
+    description: Enable new model router with pool A/B/C weights
+    owner: platform-ops
+    default: false
+    expires: 30d
+    links: ["../llm_routing_policy.md", "../observability/dashboards.md"]
+  - key: feature.brownout.noncritical
+    description: Dims non-critical features during overload
+    owner: sre
+    default: true
+    expires: 90d
+    links: ["../runbooks/load-shedding.md"]
+  - key: tool.weather.enabled
+    description: Allows weather tool invocations
+    owner: api-team
+    default: true
+    expires: 60d
+    links: ["../tool_registry.yaml"]
+  - key: safety.strict_mode
+    description: Stricter safety policies on curated red-team sets
+    owner: safety
+    default: true
+    expires: 30d
+    links: ["../CH17_SAFETY_REDTEAM.md","../runbooks/guardrail-tuning.md"]

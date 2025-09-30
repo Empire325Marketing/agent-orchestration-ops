@@ -1,0 +1,5 @@
+# Model Alerts (text sketches)
+# ALERT ModelWinRateRegression IF win_rate_drop_pct > 5
+# ALERT ModelLatencyRegression IF api_p95_regression_pct > 20
+# ALERT ModelSafetyBreach      IF jailbreak_rate > 0 OR pii_leak_rate > 0
+# ALERT ModelCostSpike         IF cost_per_req_regression_pct > 25

@@ -1,0 +1,127 @@
+groups:
+- name: billing_alerts
+  rules:
+  # Daily spend exceeds plan threshold
+  - alert: BillingSpendExceedsThreshold
+    expr: |
+      (
+        sum by (tenant_id) (
+          rate(usage_cost_total[1d])
+        ) * 86400  # daily spend
+      ) > on(tenant_id) (
+        billing_tenant_daily_threshold
+      )
+    for: 15m
+    labels: {severity: warning}
+    annotations:
+      summary: "Tenant {{$labels.tenant_id}} daily spend exceeds threshold"
+      description: "Daily spend ${{$value}} exceeds configured limit"
+      runbook: "runbooks/billing-incident.md"
+
+  # Usage spike detection (rate-based)
+  - alert: BillingUsageSpike
+    expr: |
+      (
+        rate(usage_events_total[5m])
+      ) > (
+        rate(usage_events_total[1h]) * 5  # 5x hourly average
+      )
+    for: 3m
+    labels: {severity: warning}
+    annotations:
+      summary: "Usage spike detected for {{$labels.tenant_id}}"
+      description: "5-minute usage rate {{$value}}/min is 5x above hourly average"
+      runbook: "runbooks/billing-incident.md"
+
+  # Unpaid invoice aging
+  - alert: BillingInvoiceOverdueEnterprise
+    expr: |
+      (
+        billing_invoice_days_overdue{tier="enterprise"}
+      ) > 14
+    for: 1h
+    labels: {severity: critical}
+    annotations:
+      summary: "Enterprise invoice {{$labels.invoice_id}} overdue >14 days"
+      description: "Invoice for {{$labels.tenant_id}} is {{$value}} days overdue"
+      runbook: "runbooks/billing-incident.md"
+
+  - alert: BillingInvoiceOverduePro
+    expr: |
+      (
+        billing_invoice_days_overdue{tier="pro"}
+      ) > 7
+    for: 1h  
+    labels: {severity: warning}
+    annotations:
+      summary: "Pro invoice {{$labels.invoice_id}} overdue >7 days"
+      description: "Invoice for {{$labels.tenant_id}} is {{$value}} days overdue"
+      runbook: "runbooks/billing-incident.md"
+
+  # Missing usage rollups
+  - alert: BillingRollupsMissing
+    expr: |
+      (
+        time() - billing_last_rollup_timestamp
+      ) > 7200  # 2 hours
+    for: 15m
+    labels: {severity: critical}
+    annotations:
+      summary: "Usage rollups missing for >2 hours"
+      description: "Last rollup was {{$value}} seconds ago"
+      runbook: "runbooks/billing-incident.md"
+
+  # Billing system health
+  - alert: BillingSystemDown
+    expr: |
+      up{job="billing-service"} == 0
+    for: 2m
+    labels: {severity: critical}
+    annotations:
+      summary: "Billing service is down"
+      description: "Billing service not responding to health checks"
+
+  # Free tier abuse detection
+  - alert: BillingFreeTierExceeded
+    expr: |
+      (
+        sum by (tenant_id) (
+          rate(usage_events_total{tier="free"}[1d])
+        ) * 86400  # daily usage
+      ) > on(tenant_id, meter) (
+        billing_free_tier_daily_cap
+      )
+    for: 5m
+    labels: {severity: warning}
+    annotations:
+      summary: "Free tier daily cap exceeded for {{$labels.tenant_id}}"
+      description: "Tenant exceeded {{$labels.meter}} daily cap of {{$value}}"
+
+  # Payment failure rate spike
+  - alert: BillingPaymentFailureSpike
+    expr: |
+      (
+        rate(billing_payment_failures_total[1h])
+      ) > 0.1  # 10% failure rate
+    for: 10m
+    labels: {severity: warning}
+    annotations:
+      summary: "Payment failure rate elevated"
+      description: "{{$value}} payment failures per hour"
+      runbook: "runbooks/billing-incident.md"
+
+  # Revenue anomaly detection
+  - alert: BillingRevenueAnomaly
+    expr: |
+      abs(
+        (
+          sum(rate(billing_revenue_total[1d])) * 86400 -  # today's revenue
+          sum(rate(billing_revenue_total[1d] offset 7d)) * 86400  # last week same day
+        ) / 
+        sum(rate(billing_revenue_total[1d] offset 7d)) * 86400
+      ) > 0.5  # 50% deviation
+    for: 30m
+    labels: {severity: warning}
+    annotations:
+      summary: "Daily revenue anomaly detected"
+      description: "Revenue deviates {{$value}}% from last week same day"

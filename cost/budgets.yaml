@@ -1,0 +1,72 @@
+---
+# Cost Budgets Configuration
+# Reference: CH12_COST_GUARDRAILS.md
+
+default_tenant_budget:
+  daily_cap_usd: 10.00
+  burst_allowance_req_per_hour: 50
+  grace_period_hours: 24
+  emergency_override_available: true
+
+budget_tiers:
+  starter:
+    daily_cap_usd: 5.00
+    burst_allowance_req_per_hour: 25
+    features_included: ["basic_llm", "simple_tools"]
+
+  standard:
+    daily_cap_usd: 10.00
+    burst_allowance_req_per_hour: 50
+    features_included: ["advanced_llm", "vector_search", "all_tools"]
+
+  enterprise:
+    daily_cap_usd: 100.00
+    burst_allowance_req_per_hour: 500
+    features_included: ["premium_models", "priority_queue", "custom_tools"]
+
+per_route_caps:
+  "/api/v1/chat/completions":
+    tokens_per_request_max: 8192
+    cost_per_1k_tokens_usd: 0.002
+
+  "/api/v1/embeddings":
+    vectors_per_request_max: 100
+    cost_per_request_usd: 0.001
+
+  "/api/v1/tools/search":
+    api_calls_per_hour_max: 100
+    cost_per_call_usd: 0.01
+
+model_downgrade_ladder:
+  tier_1_expensive:
+    - "gpt-4"
+    - "claude-3-opus"
+  tier_2_standard:
+    - "gpt-3.5-turbo"
+    - "claude-3-sonnet"
+  tier_3_fallback:
+    - "llama-3.1-8b-instruct"  # Local model
+
+throttle_thresholds:
+  warning_percent: 50
+  soft_throttle_percent: 75
+  hard_throttle_percent: 90
+  service_suspension_percent: 100
+
+blocklist_overbudget:
+  enabled: true
+  temp_block_duration_hours: 24
+  operator_override_required: true
+  # Reference: Chapter 6 proxy policy for egress restrictions
+  proxy_policy_integration: true
+
+cost_tracking:
+  granularity: "per_request"
+  attribution_fields:
+    - "tenant_id"
+    - "user_id"
+    - "operation_type"
+    - "model_used"
+    - "tokens_consumed"
+
+  retention_days: 90

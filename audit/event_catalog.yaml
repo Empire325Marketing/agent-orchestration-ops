@@ -1,0 +1,31 @@
+# Audit Event Catalog (MVP)
+defaults:
+  required_fields:
+    - ts
+    - tenant_id
+    - actor
+    - family
+    - action
+    - resource
+    - status
+    - region
+    - trace_id
+    - hash_prev
+    - hash_cur
+families:
+  user_action:
+    examples: [login, logout, settings.update]
+  system_action:
+    examples: [job.start, job.finish, rollout.promote, rollback.execute]
+  model_inference:
+    examples: [completion.create, embed.create]
+  tool_call:
+    examples: [http.search, repo.create, weather.query]
+  data_access:
+    examples: [messages.read, messages.write, export.create]
+  admin_change:
+    examples: [role.assign, role.revoke, policy.update]
+  security_event:
+    examples: [jailbreak.detected, pii_leak.blocked, firewall.block]
+  billing_event:
+    examples: [invoice.issue, payment.capture, dispute.open]

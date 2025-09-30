@@ -1,0 +1,25 @@
+# Core development and API access
+github.com
+api.github.com
+docs.github.com
+developer.mozilla.org
+pypi.org
+registry.npmjs.org
+go.dev
+pkg.go.dev
+
+# CDN and infrastructure
+cloudflare.com
+docs.*.com
+
+# External APIs for tools
+api.openweathermap.org
+
+# Search engine APIs (for search_web tool)
+# Note: Specific search provider domains should be added here
+# Currently using generic allowlist - update with actual search API domains
+
+# Speech I/O and Tool Adapter Note:
+# ASR (Faster Whisper) and TTS (Piper) tools are fully on-premises
+# No additional network access required for speech processing
+# Echo tool is utility-only, no network access needed

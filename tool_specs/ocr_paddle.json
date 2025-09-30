@@ -1,0 +1,258 @@
+{
+  "name": "paddle_ocr",
+  "version": "2.7.0",
+  "description": "PaddleOCR engine for optical character recognition with support for 80+ languages",
+  "type": "ocr",
+  "category": "vision",
+  "provider": "paddlepaddle",
+  "license": "Apache-2.0",
+  "commercial_use": true,
+  "endpoints": {
+    "extract_text": {
+      "path": "/ocr/extract",
+      "method": "POST",
+      "timeout_ms": 30000,
+      "max_retries": 3,
+      "rate_limit": {
+        "requests_per_minute": 300,
+        "burst_size": 50
+      }
+    },
+    "batch_extract": {
+      "path": "/ocr/batch",
+      "method": "POST", 
+      "timeout_ms": 120000,
+      "max_retries": 2,
+      "rate_limit": {
+        "requests_per_minute": 60,
+        "burst_size": 10
+      }
+    },
+    "health": {
+      "path": "/ocr/health",
+      "method": "GET",
+      "timeout_ms": 5000,
+      "max_retries": 1
+    }
+  },
+  "input_schema": {
+    "extract_text": {
+      "type": "object",
+      "required": ["image_data"],
+      "properties": {
+        "image_data": {
+          "type": "string",
+          "format": "base64",
+          "description": "Base64 encoded image data"
+        },
+        "image_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Alternative to image_data - URL of image to process"
+        },
+        "language": {
+          "type": "string",
+          "default": "en",
+          "enum": ["en", "ch", "fr", "german", "korean", "japan", "es", "pt", "ru", "ar", "hi"],
+          "description": "Primary language for OCR optimization"
+        },
+        "detection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable text detection"
+        },
+        "recognition": {
+          "type": "boolean", 
+          "default": true,
+          "description": "Enable text recognition"
+        },
+        "use_angle_cls": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable angle classification for rotated text"
+        },
+        "use_gpu": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use GPU acceleration if available"
+        },
+        "output_format": {
+          "type": "string",
+          "enum": ["json", "text", "structured"],
+          "default": "structured",
+          "description": "Output format preference"
+        }
+      }
+    },
+    "batch_extract": {
+      "type": "object",
+      "required": ["images"],
+      "properties": {
+        "images": {
+          "type": "array",
+          "items": {
+            "$ref": "#/input_schema/extract_text"
+          },
+          "maxItems": 50,
+          "description": "Array of images to process in batch"
+        },
+        "parallel_workers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 4,
+          "description": "Number of parallel processing workers"
+        }
+      }
+    }
+  },
+  "output_schema": {
+    "extract_text": {
+      "type": "object",
+      "required": ["success", "results"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "Extraction success status"
+        },
+        "results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "Extracted text content"
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "OCR confidence score"
+              },
+              "bbox": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {"type": "number"},
+                  "minItems": 2,
+                  "maxItems": 2
+                },
+                "minItems": 4,
+                "maxItems": 4,
+                "description": "Bounding box coordinates [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]"
+              },
+              "angle": {
+                "type": "number",
+                "description": "Text rotation angle in degrees"
+              }
+            }
+          }
+        },
+        "processing_time_ms": {
+          "type": "number",
+          "description": "Processing duration in milliseconds"
+        },
+        "image_dimensions": {
+          "type": "object",
+          "properties": {
+            "width": {"type": "integer"},
+            "height": {"type": "integer"}
+          }
+        },
+        "language_detected": {
+          "type": "string",
+          "description": "Auto-detected primary language"
+        },
+        "error": {
+          "type": "string",
+          "description": "Error message if success=false"
+        }
+      }
+    }
+  },
+  "resource_requirements": {
+    "cpu": {
+      "cores": 4,
+      "memory_mb": 4096
+    },
+    "gpu": {
+      "memory_mb": 6144,
+      "compute_capability": "6.0+",
+      "optional": true
+    },
+    "disk_space_mb": 2048,
+    "network": {
+      "bandwidth_mbps": 100,
+      "concurrent_connections": 50
+    }
+  },
+  "performance_metrics": {
+    "accuracy": {
+      "invoice_em": 0.9658,
+      "general_text": 0.92,
+      "handwritten": 0.78
+    },
+    "latency": {
+      "p50_ms": 1200,
+      "p95_ms": 3150,
+      "p99_ms": 5000
+    },
+    "throughput": {
+      "pages_per_minute_cpu": 19,
+      "pages_per_minute_gpu": 48
+    }
+  },
+  "cost_estimates": {
+    "per_page_cpu": 0.008,
+    "per_page_gpu": 0.003,
+    "monthly_base_cost": 120,
+    "scaling_factor": 1.2
+  },
+  "security": {
+    "pii_flags": true,
+    "input_validation": true,
+    "output_sanitization": true,
+    "encryption_in_transit": true,
+    "supported_file_types": ["jpg", "jpeg", "png", "bmp", "tiff", "pdf"],
+    "max_file_size_mb": 50,
+    "content_policy": "strict"
+  },
+  "monitoring": {
+    "metrics": {
+      "requests_total": "counter",
+      "processing_duration_seconds": "histogram", 
+      "errors_total": "counter",
+      "active_requests": "gauge",
+      "confidence_scores": "histogram"
+    },
+    "health_checks": {
+      "liveness": "/ocr/health",
+      "readiness": "/ocr/ready",
+      "interval_seconds": 30
+    },
+    "alerts": {
+      "high_error_rate": ">5%",
+      "high_latency": "p95 >5s",
+      "low_confidence": "avg <0.8"
+    }
+  },
+  "deployment": {
+    "container_image": "paddlepaddle/paddle:2.5.1-gpu-cuda11.2-cudnn8.2-trt8.0",
+    "scaling": {
+      "min_replicas": 2,
+      "max_replicas": 10,
+      "target_cpu_utilization": 70
+    },
+    "environment_variables": {
+      "PADDLE_OCR_MODEL_DIR": "/models/paddleocr",
+      "USE_GPU": "true",
+      "GPU_MEM_LIMIT": "6144"
+    }
+  },
+  "fallback": {
+    "primary": "tesseract_5",
+    "conditions": ["gpu_unavailable", "high_latency", "model_failure"],
+    "timeout_ms": 10000
+  }
+}

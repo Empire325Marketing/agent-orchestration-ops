@@ -1,0 +1,437 @@
+{
+  "tool_id": "rerank_bge",
+  "name": "BGE Reranker v2-m3",
+  "version": "2.0.0",
+  "description": "BAAI BGE Reranker v2-m3 for high-precision document relevance scoring in RAG pipelines",
+  "category": "retrieval_augmentation",
+  "deployment_type": "on_premises",
+  "model_info": {
+    "model_name": "BAAI/bge-reranker-v2-m3",
+    "model_type": "cross_encoder",
+    "architecture": "transformer",
+    "multilingual": true,
+    "supported_languages": ["en", "zh", "fr", "de", "es", "ja", "ko", "ar"],
+    "max_sequence_length": 8192,
+    "model_size_gb": 2.1
+  },
+  "resource_requirements": {
+    "minimum": {
+      "gpu_memory_gb": 4,
+      "system_memory_gb": 8,
+      "cpu_cores": 4,
+      "gpu_compute_capability": "7.0"
+    },
+    "recommended": {
+      "gpu_memory_gb": 8,
+      "system_memory_gb": 16,
+      "cpu_cores": 8,
+      "gpu_compute_capability": "8.0",
+      "gpu_models": ["A10", "A100", "RTX 3090", "RTX 4090"]
+    },
+    "performance_optimization": {
+      "precision": "fp16",
+      "batch_size": 32,
+      "max_concurrent_requests": 8,
+      "inference_engine": "torch",
+      "optimization_flags": ["--use-fast-tokenizer", "--enable-cuda-graphs"]
+    }
+  },
+  "input_schema": {
+    "type": "object",
+    "required": ["query", "documents", "options"],
+    "properties": {
+      "query": {
+        "type": "string",
+        "description": "The search query or question",
+        "minLength": 1,
+        "maxLength": 4096,
+        "examples": [
+          "What is retrieval augmented generation?",
+          "How to optimize vector databases for low latency?"
+        ]
+      },
+      "documents": {
+        "type": "array",
+        "description": "List of candidate documents to rerank",
+        "minItems": 1,
+        "maxItems": 100,
+        "items": {
+          "type": "object",
+          "required": ["id", "text"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Unique document identifier"
+            },
+            "text": {
+              "type": "string",
+              "description": "Document content or relevant excerpt",
+              "maxLength": 8192
+            },
+            "metadata": {
+              "type": "object",
+              "description": "Optional document metadata",
+              "properties": {
+                "title": {"type": "string"},
+                "url": {"type": "string"},
+                "source": {"type": "string"},
+                "timestamp": {"type": "string", "format": "date-time"}
+              }
+            }
+          }
+        }
+      },
+      "options": {
+        "type": "object",
+        "description": "Reranking configuration options",
+        "properties": {
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top-scored documents to return",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 20
+          },
+          "batch_size": {
+            "type": "integer",
+            "description": "Batch size for processing (auto-tuned if not specified)",
+            "minimum": 1,
+            "maximum": 64,
+            "default": 32
+          },
+          "score_threshold": {
+            "type": "number",
+            "description": "Minimum relevance score threshold (0.0-1.0)",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "default": 0.0
+          },
+          "normalize_scores": {
+            "type": "boolean",
+            "description": "Whether to normalize scores to [0,1] range",
+            "default": true
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "description": "Include document metadata in response",
+            "default": true
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "description": "Request timeout in seconds",
+            "minimum": 1,
+            "maximum": 300,
+            "default": 30
+          }
+        }
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "required": ["results", "metadata"],
+    "properties": {
+      "results": {
+        "type": "array",
+        "description": "Reranked documents ordered by relevance score (descending)",
+        "items": {
+          "type": "object",
+          "required": ["id", "score", "rank"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "Document identifier from input"
+            },
+            "score": {
+              "type": "number",
+              "description": "Relevance score (0.0-1.0, higher is more relevant)",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "rank": {
+              "type": "integer",
+              "description": "Rank position (1-based)",
+              "minimum": 1
+            },
+            "text": {
+              "type": "string",
+              "description": "Original document text"
+            },
+            "metadata": {
+              "type": "object",
+              "description": "Document metadata (if requested)"
+            }
+          }
+        }
+      },
+      "metadata": {
+        "type": "object",
+        "required": ["processing_time_ms", "model_version"],
+        "properties": {
+          "processing_time_ms": {
+            "type": "number",
+            "description": "Total processing time in milliseconds"
+          },
+          "model_version": {
+            "type": "string",
+            "description": "BGE reranker model version used"
+          },
+          "input_documents": {
+            "type": "integer",
+            "description": "Number of input documents processed"
+          },
+          "output_documents": {
+            "type": "integer", 
+            "description": "Number of documents returned"
+          },
+          "gpu_utilization": {
+            "type": "number",
+            "description": "GPU utilization percentage during processing"
+          },
+          "batch_processing_stats": {
+            "type": "object",
+            "properties": {
+              "total_batches": {"type": "integer"},
+              "avg_batch_time_ms": {"type": "number"},
+              "peak_memory_mb": {"type": "number"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "error_schema": {
+    "type": "object",
+    "required": ["error_code", "message"],
+    "properties": {
+      "error_code": {
+        "type": "string",
+        "enum": [
+          "INVALID_INPUT",
+          "MODEL_LOAD_ERROR", 
+          "GPU_OUT_OF_MEMORY",
+          "TIMEOUT_EXCEEDED",
+          "INFERENCE_ERROR",
+          "SYSTEM_ERROR"
+        ]
+      },
+      "message": {
+        "type": "string",
+        "description": "Human-readable error message"
+      },
+      "details": {
+        "type": "object",
+        "description": "Additional error context"
+      },
+      "retry_after_seconds": {
+        "type": "integer",
+        "description": "Suggested retry delay (for transient errors)"
+      }
+    }
+  },
+  "performance_benchmarks": {
+    "baseline_cpu": {
+      "hardware": "Intel Xeon E5-2686 v4",
+      "latency_100_docs": "257000ms",
+      "throughput_docs_per_second": 0.39,
+      "memory_usage_gb": 8.0
+    },
+    "optimized_gpu_t4": {
+      "hardware": "NVIDIA Tesla T4",
+      "latency_100_docs": "3400ms", 
+      "throughput_docs_per_second": 29.4,
+      "memory_usage_gb": 4.2,
+      "speedup_vs_cpu": "75x"
+    },
+    "optimized_gpu_a10": {
+      "hardware": "NVIDIA A10",
+      "latency_100_docs": "1400ms",
+      "throughput_docs_per_second": 71.4,
+      "memory_usage_gb": 4.8,
+      "speedup_vs_cpu": "183x"
+    },
+    "target_sla": {
+      "p95_latency_ms": 500,
+      "p99_latency_ms": 1000,
+      "availability_percent": 99.9,
+      "error_rate_percent": 0.1
+    }
+  },
+  "operational_config": {
+    "health_check": {
+      "endpoint": "/health",
+      "interval_seconds": 30,
+      "timeout_seconds": 10,
+      "unhealthy_threshold": 3
+    },
+    "readiness_check": {
+      "endpoint": "/ready",
+      "model_load_timeout": 300,
+      "warmup_queries": 5
+    },
+    "metrics": {
+      "endpoint": "/metrics",
+      "format": "prometheus",
+      "custom_metrics": [
+        "rerank_requests_total",
+        "rerank_latency_histogram",
+        "rerank_gpu_utilization",
+        "rerank_errors_total",
+        "rerank_cache_hits_total"
+      ]
+    },
+    "logging": {
+      "level": "INFO",
+      "format": "json",
+      "fields": [
+        "timestamp",
+        "request_id",
+        "query_hash",
+        "doc_count",
+        "processing_time_ms",
+        "gpu_memory_used",
+        "error_code"
+      ]
+    }
+  },
+  "scaling_config": {
+    "horizontal_scaling": {
+      "min_replicas": 1,
+      "max_replicas": 8,
+      "target_gpu_utilization": 70,
+      "scale_up_threshold": 80,
+      "scale_down_threshold": 30,
+      "cooldown_seconds": 300
+    },
+    "load_balancing": {
+      "strategy": "round_robin",
+      "health_check_enabled": true,
+      "circuit_breaker": {
+        "failure_threshold": 5,
+        "timeout_seconds": 60,
+        "half_open_max_calls": 3
+      }
+    }
+  },
+  "security": {
+    "authentication": {
+      "method": "bearer_token",
+      "token_validation": "jwt_signature",
+      "required_scopes": ["rag:rerank"]
+    },
+    "authorization": {
+      "rbac_enabled": true,
+      "document_level_access": false,
+      "audit_logging": true
+    },
+    "data_protection": {
+      "encryption_in_transit": "tls_1_3",
+      "pii_detection": false,
+      "data_retention_hours": 0
+    }
+  },
+  "integration": {
+    "compatible_retrievers": [
+      "pgvector_hybrid",
+      "elasticsearch_dense",
+      "qdrant_search", 
+      "weaviate_hybrid"
+    ],
+    "output_formats": ["json", "msgpack"],
+    "caching": {
+      "enabled": true,
+      "backend": "redis",
+      "ttl_seconds": 3600,
+      "key_strategy": "query_hash_and_doc_hash",
+      "cache_hit_rate_target": 0.40
+    }
+  },
+  "deployment": {
+    "container": {
+      "base_image": "nvidia/pytorch:23.12-py3",
+      "exposed_port": 8080,
+      "environment_variables": {
+        "CUDA_VISIBLE_DEVICES": "0",
+        "TORCH_CUDA_ARCH_LIST": "7.0;8.0;8.6",
+        "MODEL_CACHE_DIR": "/app/models",
+        "MAX_BATCH_SIZE": "32"
+      },
+      "resource_limits": {
+        "memory": "16Gi",
+        "nvidia.com/gpu": 1
+      }
+    },
+    "kubernetes": {
+      "deployment_name": "bge-reranker",
+      "namespace": "rag-system",
+      "service_type": "ClusterIP",
+      "ingress_enabled": false,
+      "pdb_min_available": 1
+    }
+  },
+  "monitoring": {
+    "key_metrics": [
+      {
+        "name": "rerank_request_latency_p95",
+        "type": "histogram",
+        "labels": ["model_version", "batch_size"],
+        "alert_threshold": 500
+      },
+      {
+        "name": "rerank_gpu_memory_utilization",
+        "type": "gauge", 
+        "labels": ["gpu_id"],
+        "alert_threshold": 90
+      },
+      {
+        "name": "rerank_error_rate",
+        "type": "counter",
+        "labels": ["error_code"],
+        "alert_threshold": 0.01
+      }
+    ],
+    "dashboards": [
+      "BGE Reranker Performance",
+      "GPU Resource Utilization", 
+      "Error Rate and Latency Trends"
+    ]
+  },
+  "testing": {
+    "unit_tests": {
+      "framework": "pytest",
+      "coverage_threshold": 90,
+      "test_data": "synthetic_queries_and_documents"
+    },
+    "integration_tests": {
+      "test_scenarios": [
+        "single_document_reranking",
+        "batch_document_reranking", 
+        "multilingual_queries",
+        "long_document_handling",
+        "error_condition_handling"
+      ]
+    },
+    "performance_tests": {
+      "load_testing": {
+        "tool": "k6",
+        "target_rps": 100,
+        "duration": "10m"
+      },
+      "benchmarking": {
+        "dataset": "ms_marco_dev",
+        "metrics": ["NDCG@10", "MRR@10", "latency_p95"]
+      }
+    }
+  },
+  "changelog": {
+    "v2.0.0": {
+      "date": "2025-09-30",
+      "changes": [
+        "Initial BGE reranker v2-m3 integration",
+        "GPU acceleration with FP16 precision", 
+        "Kubernetes deployment support",
+        "Prometheus metrics integration"
+      ]
+    }
+  }
+}

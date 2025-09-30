@@ -1,0 +1,88 @@
+# Export Format Specifications
+version: 1
+
+formats:
+  jsonl:
+    description: "JSON Lines format for API consumption and re-ingestion"
+    content_type: "application/jsonlines"
+    file_extension: ".jsonl"
+    compression:
+      default: "zstd"
+      alternatives: ["gzip", "none"]
+      level: 3  # balance speed vs compression
+    encoding: "utf-8"
+    line_ending: "LF"
+    characteristics:
+      streaming_friendly: true
+      human_readable: true
+      schema_evolution: "flexible"
+      nested_data: "native"
+    use_cases:
+      - "API re-ingestion"
+      - "Data pipeline consumption" 
+      - "General purpose interchange"
+    max_file_size: "1GB"  # split larger datasets
+    
+  parquet:
+    description: "Columnar format optimized for analytics workloads"
+    content_type: "application/parquet"
+    file_extension: ".parquet"
+    compression: "snappy"  # good balance of speed/size
+    schema_enforcement: "strict"
+    characteristics:
+      streaming_friendly: false
+      human_readable: false
+      schema_evolution: "controlled"
+      nested_data: "structured"
+      column_pruning: true
+      predicate_pushdown: true
+    use_cases:
+      - "Data warehouse import"
+      - "Analytics platforms"
+      - "BI tool consumption"
+    partitioning:
+      by_date: true
+      max_partition_size: "512MB"
+    metadata:
+      preserve_types: true
+      include_schema: true
+      
+  csv:
+    description: "Comma-separated values for legacy system compatibility"
+    content_type: "text/csv"
+    file_extension: ".csv"
+    compression:
+      default: "gzip"
+      alternatives: ["none"]
+    encoding: "utf-8"
+    bom: true  # for Excel compatibility
+    line_ending: "CRLF"  # Windows compatibility
+    delimiter: ","
+    quote_char: "\""
+    escape_char: "\\"
+    null_representation: ""
+    characteristics:
+      streaming_friendly: true
+      human_readable: true
+      schema_evolution: "breaking"
+      nested_data: "flattened_or_json"
+    use_cases:
+      - "Excel import"
+      - "Legacy system integration"
+      - "Simple data inspection"
+    limitations:
+      - "No nested structures"
+      - "Type information lost"
+      - "Large text fields problematic"
+    max_file_size: "256MB"  # smaller due to inefficiency
+
+format_selection_rules:
+  default: "jsonl"
+  large_datasets: "parquet"  # >100MB or >1M rows
+  analytics_request: "parquet"
+  legacy_requirement: "csv"
+  
+delivery_options:
+  single_file_threshold: "10MB"
+  compression_threshold: "1MB"  # compress files larger than this
+  split_threshold: "1GB"  # split into multiple files

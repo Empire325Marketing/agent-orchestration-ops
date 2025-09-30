@@ -1,0 +1,7 @@
+-- Chaos Reporting (documentation-only)
+-- SLO impact during experiment window:
+-- SELECT exp_id, route, avg(p95_ms), avg(error_rate) FROM slo_by_route
+--  WHERE ts BETWEEN :start AND :end GROUP BY 1,2 ORDER BY 3 DESC;
+-- Failover timing:
+-- SELECT exp_id, min(ts) AS start, max(ts) AS recovered, extract(epoch FROM (max(ts)-min(ts))) AS seconds
+--  FROM runtime_unavailable WHERE exp_id=:id GROUP BY 1;

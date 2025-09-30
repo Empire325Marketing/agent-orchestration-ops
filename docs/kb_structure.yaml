@@ -1,0 +1,17 @@
+version: 1
+sections:
+  - id: getting_started
+    files: ["getting_started.md","quickstart.md"]
+  - id: concepts
+    files: ["concepts.md"]
+  - id: api
+    files: ["api_reference.md"]
+  - id: support
+    files: ["troubleshooting.md","faq.md"]
+navigation:
+  - "Getting Started": "getting_started.md"
+  - "Quickstart": "quickstart.md"
+  - "Concepts": "concepts.md"
+  - "API Reference": "api_reference.md"
+  - "Troubleshooting": "troubleshooting.md"
+  - "FAQ": "faq.md"

@@ -1,0 +1,23 @@
+groups:
+- name: launch_watch
+  rules:
+  - alert: LaunchP95Regression
+    expr: rate(p95_ms{phase="canary"}[5m]) / rate(p95_baseline_ms[5m]) > 1.2
+    for: 30m
+    labels: {severity: warning}
+    annotations: {summary: "p95 regression >20% during canary"}
+  - alert: LaunchErrorRateSpike
+    expr: rate(err_total{phase="canary"}[5m]) / rate(err_baseline_total[5m]) > 1.5
+    for: 30m
+    labels: {severity: critical}
+    annotations: {summary: "Error rate >1.5x baseline"}
+  - alert: LaunchSafetyBreach
+    expr: safety_ok == 0
+    for: 15m
+    labels: {severity: critical}
+    annotations: {summary: "Safety breach (jailbreak/PII)"}
+  - alert: LaunchCostHeadroomLow
+    expr: cost_headroom < 0.20
+    for: 30m
+    labels: {severity: warning}
+    annotations: {summary: "Cost headroom below 20% — downgrade or rollback"}

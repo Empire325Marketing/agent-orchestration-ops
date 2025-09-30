@@ -1,0 +1,200 @@
+# vLLM Engine Configuration for Primarch GPU Pools
+# Version: 1.0 | Chapter 38 - Model Routing & Batching Optimization
+# Supports RTX 5090 (Pool A/B) and RTX 3090 (Pool C) configurations
+
+# GPU pool definitions with hardware-specific optimizations
+pools:
+  A_5090:
+    gpus: [0]                         # Primary RTX 5090
+    tensor_parallel_size: 1
+    pipeline_parallel_size: 1
+    max_model_len: 32768
+    gpu_memory_utilization: 0.85      # Conservative for stability
+    swap_space: 16GiB                 # Generous swap for 5090's 24GB
+    kv_cache_dtype: fp16              # Memory optimization
+    quantization: null                # Disable for maximum quality
+    
+  B_5090:
+    gpus: [1]                         # Secondary RTX 5090
+    tensor_parallel_size: 1
+    pipeline_parallel_size: 1
+    max_model_len: 32768
+    gpu_memory_utilization: 0.85
+    swap_space: 16GiB
+    kv_cache_dtype: fp16
+    quantization: null
+
+  C_3090:
+    gpus: [2]                         # RTX 3090 spillover pool
+    tensor_parallel_size: 1
+    pipeline_parallel_size: 1
+    max_model_len: 16384              # Reduced for 3090's 24GB constraints
+    gpu_memory_utilization: 0.80      # More conservative for older arch
+    swap_space: 12GiB
+    kv_cache_dtype: fp16
+    quantization: awq                 # Enable quantization for 3090
+
+# Model configurations with pool assignments
+models:
+  - id: llama-3.1-8b-instruct
+    hf_model_id: meta-llama/Meta-Llama-3.1-8B-Instruct
+    pool_order: [A_5090, B_5090, C_3090]    # Priority failover order
+    revision: main
+    trust_remote_code: false
+    dtype: bfloat16                          # Optimal for modern hardware
+    
+    # vLLM engine parameters
+    engine:
+      max_num_seqs: 2048                     # Batch size optimization
+      max_num_batched_tokens: 8192           # Token batching limit
+      max_paddings: 256                      # Padding optimization
+      gpu_memory_utilization: 0.85           # Override pool default if needed
+      swap_space: 16GiB
+      cpu_offload_gb: 0                      # Keep on GPU for speed
+      
+      # Advanced batching features
+      enable_prefix_caching: true            # Crucial for chat workloads
+      enable_chunked_prefill: true           # Better batching efficiency
+      chunk_prefill_budget: 512              # Balance latency vs throughput
+      max_num_on_the_fly: 1                  # Conservative prefill
+      
+      # Scheduling and performance
+      scheduler_policy: fcfs                  # First-come-first-served
+      enable_lora_adapter: false             # Disable for simplicity
+      max_loras: 0
+      max_lora_rank: 0
+      lora_extra_vocab_size: 0
+      
+      # Speculative decoding (disabled initially)
+      speculative_model: null
+      num_speculative_tokens: 0
+      speculative_draft_tensor_parallel_size: 1
+      speculative_max_model_len: 0
+      use_v2_block_manager: true             # Use improved block manager
+      
+      # Memory and computation optimizations
+      block_size: 16                         # KV cache block size
+      preemption_mode: recompute            # Recompute vs swap
+      num_gpu_blocks_override: null         # Auto-calculate
+      
+      # Continuous batching settings
+      scheduler: continuous-batching
+      max_tokens_per_batch: 8192
+      batch_scheduler_policy: max_utilization
+      
+      # Quality settings
+      disable_log_stats: false
+      disable_log_requests: false
+
+  - id: llama-3.1-70b-instruct
+    hf_model_id: meta-llama/Meta-Llama-3.1-70B-Instruct
+    pool_order: [A_5090, B_5090]            # 70B model only on 5090s
+    revision: main
+    trust_remote_code: false
+    dtype: bfloat16
+    
+    engine:
+      max_num_seqs: 512                     # Reduced batch size for 70B
+      max_num_batched_tokens: 4096
+      max_paddings: 128
+      gpu_memory_utilization: 0.90          # Higher utilization for large model
+      swap_space: 20GiB
+      enable_prefix_caching: true
+      enable_chunked_prefill: true
+      chunk_prefill_budget: 256
+      scheduler_policy: fcfs
+      use_v2_block_manager: true
+      block_size: 16
+      preemption_mode: swap                 # Swap for large model
+      scheduler: continuous-batching
+      max_tokens_per_batch: 4096
+
+# Default sampling parameters for all models
+sampling_defaults:
+  temperature: 0.2
+  top_p: 0.95
+  top_k: 40
+  repetition_penalty: 1.1
+  max_tokens: 2048
+  stop_tokens: ["<|end_of_text|>", "<|eot_id|>"]
+  include_stop_str_in_output: false
+  skip_special_tokens: true
+
+# Global limits and safety settings
+limits:
+  max_tokens_output: 4096               # Global output limit
+  max_request_tokens: 32768             # Global input limit
+  max_queue_size: 1000                  # Request queue limit
+  queue_timeout_s: 300                  # Queue timeout
+  request_timeout_s: 600                # Individual request timeout
+  
+# Health and liveness configuration  
+health:
+  health_check_grace_period_s: 30
+  liveness_check_interval_s: 10
+  readiness_check_interval_s: 5
+
+# Observability and monitoring
+observability:
+  enable_metrics: true
+  metrics_port: 8081
+  prometheus_multiproc_dir: /tmp/vllm_metrics
+  otel_enabled: true
+  otel_service_name: vllm-primarch
+  otel_endpoint: http://otel-collector:4317
+  
+  # Custom metrics
+  track_token_usage: true
+  track_model_usage: true
+  track_gpu_utilization: true
+  track_kv_cache_usage: true
+  track_queue_depth: true
+
+# Logging configuration
+logging:
+  level: INFO
+  format: json
+  log_requests: true
+  log_stats_interval_s: 60
+  disable_log_stats: false
+  disable_log_requests: false
+
+# API server settings
+api:
+  host: 0.0.0.0
+  port: 8000
+  ssl_keyfile: null
+  ssl_certfile: null
+  ssl_ca_certs: null
+  ssl_cert_reqs: 0
+  root_path: null
+  middleware: []
+  timeout_keep_alive: 5
+  served_model_name: null               # Use model ID
+  response_role: assistant
+  chat_template: null                   # Use model's default
+
+# Worker and distributed settings  
+distributed:
+  worker_use_ray: false                 # Single node setup
+  engine_use_ray: false
+  disable_custom_all_reduce: false
+  ray_workers_use_nsight: false
+
+# Performance tuning
+performance:
+  enable_cuda_graph: true               # CUDA graph optimization
+  enforce_eager: false                  # Use CUDA graphs when possible
+  max_context_len_to_capture: 8192     # CUDA graph context limit
+  max_seq_len_to_capture: 2048         # CUDA graph sequence limit
+  disable_sliding_window: false        # Keep sliding window
+  tokenizer_mode: auto                  # Auto-detect tokenizer mode
+  skip_tokenizer_init: false           # Initialize tokenizer
+  tokenizer_revision: null              # Use default revision
+
+# Development and debugging
+debug:
+  disable_async_output_proc: false
+  enable_prefix_caching: true
+  profile: false
+  nsys_profile: false

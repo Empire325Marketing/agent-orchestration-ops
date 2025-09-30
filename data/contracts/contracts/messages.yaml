@@ -1,0 +1,12 @@
+name: messages
+schema:
+  - {name: message_id, type: uuid, required: true}
+  - {name: request_id, type: uuid, required: true}
+  - {name: role,       type: enum[user,assistant,tool], required: true}
+  - {name: content,    type: text, required: true}
+  - {name: created_at, type: timestamptz, required: true}
+  - {name: pii_flag,   type: enum[none,contact,sensitive], required: true}
+invariants:
+  - "length(content) > 0"
+  - "created_at <= now()"
+  - "pii_flag in ('none','contact','sensitive')"

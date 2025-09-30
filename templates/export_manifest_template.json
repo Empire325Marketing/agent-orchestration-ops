@@ -1,0 +1,93 @@
+{
+  "export_id": "{{export_id}}",
+  "tenant_id": "{{tenant_id}}",
+  "created_at": "{{created_at}}",
+  "completed_at": "{{completed_at}}",
+  "schema_version": "{{schema_version}}",
+  "format": "{{format}}",
+  "compression": "{{compression}}",
+  "encryption": {
+    "method": "{{encryption_method}}",
+    "key_fingerprint": "{{key_fingerprint}}"
+  },
+  "request_parameters": {
+    "datasets": "{{datasets}}",
+    "date_range": {
+      "start": "{{date_start}}",
+      "end": "{{date_end}}"
+    },
+    "pii_masking": "{{pii_masking}}",
+    "include_embeddings": "{{include_embeddings}}",
+    "include_legal_hold": "{{include_legal_hold}}"
+  },
+  "files": [
+    {
+      "path": "{{file_path}}",
+      "dataset": "{{dataset_name}}",
+      "rows": "{{row_count}}",
+      "bytes": "{{file_size}}",
+      "sha256": "{{file_hash}}",
+      "compressed": "{{is_compressed}}",
+      "encrypted": "{{is_encrypted}}"
+    }
+  ],
+  "totals": {
+    "files": "{{total_files}}",
+    "rows": "{{total_rows}}",
+    "bytes": "{{total_bytes}}",
+    "datasets": "{{dataset_count}}"
+  },
+  "validation": {
+    "row_count_verified": "{{row_count_ok}}",
+    "hash_verification": "{{hash_verification_ok}}",
+    "schema_compliance": "{{schema_compliance_ok}}",
+    "pii_audit_passed": "{{pii_audit_ok}}"
+  },
+  "data_contracts": {
+    "messages": {
+      "contract_version": "{{messages_contract_version}}",
+      "validation_status": "{{messages_validation_status}}",
+      "field_count": "{{messages_field_count}}"
+    },
+    "tool_calls": {
+      "contract_version": "{{tool_calls_contract_version}}",
+      "validation_status": "{{tool_calls_validation_status}}",
+      "field_count": "{{tool_calls_field_count}}"
+    },
+    "support_tickets": {
+      "contract_version": "{{support_contract_version}}",
+      "validation_status": "{{support_validation_status}}",
+      "field_count": "{{support_field_count}}"
+    },
+    "invoices": {
+      "contract_version": "{{invoices_contract_version}}",
+      "validation_status": "{{invoices_validation_status}}",
+      "field_count": "{{invoices_field_count}}"
+    }
+  },
+  "compliance": {
+    "legal_hold_checked": "{{legal_hold_checked}}",
+    "retention_policy_applied": "{{retention_applied}}",
+    "gdpr_compliant": "{{gdpr_compliant}}",
+    "export_authority": "{{export_authority}}"
+  },
+  "delivery": {
+    "method": "{{delivery_method}}",
+    "signed_url_expires": "{{signed_url_expiry}}",
+    "download_window_days": "{{download_window}}",
+    "notification_sent": "{{notification_sent}}"
+  },
+  "audit_trail": {
+    "requested_by": "{{requester_id}}",
+    "approved_by": "{{approver_id}}",
+    "generated_by": "{{generator_system}}",
+    "trace_id": "{{trace_id}}",
+    "decisions_log_entry": "{{decisions_log_ref}}"
+  },
+  "notes": "{{export_notes}}",
+  "_meta": {
+    "manifest_version": "1.0",
+    "generator": "primarch-export-service",
+    "generated_at": "{{manifest_generated_at}}"
+  }
+}

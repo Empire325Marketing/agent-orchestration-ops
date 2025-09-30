@@ -1,0 +1,80 @@
+{
+  "name": "@primarch/sdk",
+  "version": "1.0.0",
+  "description": "JavaScript/TypeScript SDK for Primarch AI Platform",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "dist/index.mjs",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "dev": "tsup src/index.ts --format cjs,esm --dts --watch",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm run build",
+    "docs": "typedoc src/index.ts"
+  },
+  "dependencies": {
+    "cross-fetch": "^4.0.0",
+    "eventemitter3": "^5.0.1",
+    "ws": "^8.14.0",
+    "form-data": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "@types/node": "^20.6.3",
+    "@types/ws": "^8.5.6",
+    "@typescript-eslint/eslint-plugin": "^6.7.2",
+    "@typescript-eslint/parser": "^6.7.2",
+    "eslint": "^8.49.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "tsup": "^7.2.0",
+    "typedoc": "^0.25.1",
+    "typescript": "^5.2.2"
+  },
+  "peerDependencies": {
+    "typescript": ">=4.5.0"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "api",
+    "sdk",
+    "primarch",
+    "machine-learning",
+    "typescript",
+    "javascript"
+  ],
+  "author": "Primarch AI <sdk@primarch.ai>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/primarch-ai/primarch-js.git"
+  },
+  "bugs": {
+    "url": "https://github.com/primarch-ai/primarch-js/issues"
+  },
+  "homepage": "https://docs.primarch.ai/javascript-sdk",
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

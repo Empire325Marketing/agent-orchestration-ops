@@ -1,0 +1,5 @@
+# Audit Alerts (sketch, Prometheus-style text)
+# ALERT AuditChainBreak       IF increase(audit_chain_break_total[5m]) > 0
+# ALERT AuditAnchorMissing    IF audit_anchor_freshness_hours > 26
+# ALERT AdminChangeSpike      IF increase(audit_admin_change_total[15m]) > 100
+# ALERT CrossTenantAccess     IF increase(audit_cross_tenant_denies_total[5m]) > 0

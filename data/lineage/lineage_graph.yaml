@@ -1,0 +1,30 @@
+# Logical lineage graph (MVP)
+nodes:
+  - id: api_gateway
+  - id: orchestrator
+  - id: tool_calls
+  - id: llm_runtime
+  - id: postgres_oltp
+  - id: pgvector_embeddings
+  - id: analytics_eval
+
+edges:
+  - from: api_gateway          ; to: orchestrator            ; contract: requests
+  - from: orchestrator         ; to: tool_calls              ; contract: tool_calls
+  - from: orchestrator         ; to: llm_runtime             ; contract: prompts
+  - from: llm_runtime          ; to: postgres_oltp           ; contract: messages
+  - from: orchestrator         ; to: pgvector_embeddings     ; contract: embeddings
+  - from: postgres_oltp        ; to: analytics_eval          ; contract: evaluations
+
+data_domains:
+  - name: conversations
+    datasets: [requests, messages, tool_calls]
+  - name: vectors
+    datasets: [embeddings]
+  - name: evals
+    datasets: [evaluations]
+
+governance:
+  owner: "platform-eng"
+  pii_flags: ["none","contact","sensitive"]
+  legal_hold_field: "legal_hold"
