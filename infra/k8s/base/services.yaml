@@ -1,0 +1,28 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: litellm
+  namespace: primarch-routing
+spec:
+  selector:
+    app: litellm
+  ports:
+    - name: http
+      port: 4000
+      targetPort: 4000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm
+  namespace: primarch-routing
+spec:
+  selector:
+    app: vllm
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP
