@@ -1,0 +1,18 @@
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: primarch-routing
+
+resources:
+  - namespace.yaml
+  - redis.yaml
+  - litellm-deployment.yaml
+  - vllm-deployment.yaml
+  - services.yaml
+  - networkpolicies.yaml
+  - litellm-router-configmap.yaml
+
+commonLabels:
+  app.kubernetes.io/part-of: primarch-routing
+  app.kubernetes.io/managed-by: kustomize

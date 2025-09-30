@@ -1,0 +1,71 @@
+
+# Development environment values
+
+global:
+  environment: dev
+  logLevel: DEBUG
+
+redis:
+  master:
+    resources:
+      requests:
+        memory: 256Mi
+        cpu: 100m
+      limits:
+        memory: 512Mi
+        cpu: 500m
+  replica:
+    replicaCount: 0
+
+litellm:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/berriai/litellm
+    tag: latest
+    pullPolicy: Always
+  
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 1000m
+  
+  config:
+    redis_host: redis-master
+    redis_port: 6379
+    enable_caching: true
+    cache_responses: true
+    num_retries: 2
+    timeout: 300
+  
+  env:
+    - name: LOG_LEVEL
+      value: DEBUG
+    - name: ENVIRONMENT
+      value: dev
+
+vllm:
+  replicaCount: 1
+  image:
+    repository: vllm/vllm-openai
+    tag: latest
+    pullPolicy: Always
+  
+  model:
+    name: meta-llama/Meta-Llama-3.1-8B-Instruct
+    gpuMemoryUtilization: 0.90
+    maxNumSeqs: 128
+    maxModelLen: 32768
+    enablePrefixCaching: true
+  
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+    requests:
+      memory: 16Gi
+      cpu: 4000m
+  
+  nodeSelector:
+    nvidia.com/gpu.present: "true"
