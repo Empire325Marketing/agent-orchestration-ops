@@ -1,0 +1,57 @@
+
+version: "3.9"
+
+# Integration test environment - reuses infrastructure docker compose
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  litellm:
+    image: ghcr.io/berriai/litellm:latest
+    ports:
+      - "4000:4000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - LITELLM_MODE=PRODUCTION
+      - LITELLM_LOG=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    command:
+      - "--model"
+      - "meta-llama/Meta-Llama-3.1-8B-Instruct"
+      - "--gpu-memory-utilization"
+      - "0.90"
+      - "--max-num-seqs"
+      - "128"
+      - "--max-model-len"
+      - "32768"
+      - "--enable-prefix-caching"
+    ports:
+      - "8000:8000"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    runtime: nvidia
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
