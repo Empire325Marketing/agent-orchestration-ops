@@ -1,0 +1,35 @@
+
+# Global code owners
+* @Empire325Marketing
+
+# CI/CD and DevOps
+/.github/ @Empire325Marketing
+/scripts/ @Empire325Marketing
+/docker/ @Empire325Marketing
+/k8s/ @Empire325Marketing
+
+# Security and compliance
+/security/ @Empire325Marketing
+SECURITY.md @Empire325Marketing
+
+# Documentation
+/docs/ @Empire325Marketing
+README.md @Empire325Marketing
+CONTRIBUTING.md @Empire325Marketing
+
+# Configuration files
+*.yml @Empire325Marketing
+*.yaml @Empire325Marketing
+*.json @Empire325Marketing
+*.toml @Empire325Marketing
+*.ini @Empire325Marketing
+
+# Infrastructure as Code
+/terraform/ @Empire325Marketing
+/cloudformation/ @Empire325Marketing
+/helm/ @Empire325Marketing
+
+# Monitoring and observability
+/monitoring/ @Empire325Marketing
+/grafana/ @Empire325Marketing
+/prometheus/ @Empire325Marketing
