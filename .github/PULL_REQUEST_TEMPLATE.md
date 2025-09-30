@@ -1,112 +1,81 @@
 
-# Pull Request
+## 🚀 Pull Request
 
-## 📋 Description
+### 📋 Description
 <!-- Provide a clear and concise description of the changes -->
 
-## 🔄 Type of Change
+### 🔗 Related Issues
+<!-- Link to related issues using "Fixes #123" or "Closes #123" -->
+- Fixes #
+- Related to #
+
+### 🧪 Type of Change
 <!-- Mark the relevant option with an "x" -->
 - [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
 - [ ] ✨ New feature (non-breaking change which adds functionality)
 - [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
 - [ ] 📚 Documentation update
 - [ ] 🔧 Configuration change
-- [ ] 🚀 Performance improvement
 - [ ] 🧹 Code cleanup/refactoring
+- [ ] ⚡ Performance improvement
 - [ ] 🔒 Security enhancement
-- [ ] 🏗️ Infrastructure change
 
-## 🎯 Related Issues
-<!-- Link to related issues using "Fixes #123" or "Closes #123" -->
-- Fixes #
-- Related to #
-
-## 🧪 Testing
+### 🧪 Testing
 <!-- Describe the tests you ran and how to reproduce them -->
-- [ ] All existing tests pass
-- [ ] New tests added for new functionality
-- [ ] Manual testing completed
+- [ ] Unit tests pass
 - [ ] Integration tests pass
-- [ ] Security scan passes
+- [ ] End-to-end tests pass
+- [ ] Manual testing completed
+- [ ] Security testing completed
 
-### Test Evidence
-<!-- Provide screenshots, logs, or other evidence of testing -->
+**Test Configuration:**
+- OS: 
+- Browser (if applicable):
+- Version:
 
-## 📝 Checklist
+### 📝 Checklist
 <!-- Mark completed items with an "x" -->
+- [ ] My code follows the project's style guidelines
+- [ ] I have performed a self-review of my code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have made corresponding changes to the documentation
+- [ ] My changes generate no new warnings
+- [ ] I have added tests that prove my fix is effective or that my feature works
+- [ ] New and existing unit tests pass locally with my changes
+- [ ] Any dependent changes have been merged and published
 
-### Code Quality
-- [ ] Code follows project style guidelines
-- [ ] Self-review of code completed
-- [ ] Code is properly commented
-- [ ] No debugging code left in place
-- [ ] Error handling is appropriate
+### 🔒 Security Considerations
+<!-- Describe any security implications of your changes -->
+- [ ] No sensitive data exposed
+- [ ] Authentication/authorization properly implemented
+- [ ] Input validation added where necessary
+- [ ] Security tests updated
 
-### Documentation
-- [ ] Documentation updated (if applicable)
-- [ ] DECISIONS.log updated (if architectural change)
-- [ ] README updated (if user-facing change)
-- [ ] Runbooks updated (if operational change)
+### 📊 Performance Impact
+<!-- Describe any performance implications -->
+- [ ] No performance degradation
+- [ ] Performance improvements included
+- [ ] Load testing completed (if applicable)
 
-### Security & Compliance
-- [ ] No sensitive information exposed
-- [ ] Security implications considered
-- [ ] Compliance requirements met
-- [ ] Access controls reviewed
+### 🚀 Deployment Notes
+<!-- Any special deployment considerations -->
+- [ ] Database migrations required
+- [ ] Configuration changes required
+- [ ] Environment variables updated
+- [ ] Third-party service updates needed
 
-### Operations
-- [ ] Monitoring/alerting considerations addressed
-- [ ] Rollback plan documented (if needed)
-- [ ] Performance impact assessed
-- [ ] Resource requirements documented
+### 📸 Screenshots/Videos
+<!-- Add screenshots or videos if applicable -->
 
-## 🔍 Review Focus Areas
-<!-- Highlight specific areas where you want reviewer attention -->
-- [ ] Architecture/design decisions
-- [ ] Security implications
-- [ ] Performance considerations
-- [ ] Error handling
-- [ ] Documentation completeness
-- [ ] Test coverage
-
-## 📊 Impact Assessment
-<!-- Describe the impact of these changes -->
-
-### Systems Affected
-- [ ] Agent orchestration
-- [ ] Monitoring/alerting
-- [ ] Security systems
-- [ ] Documentation
-- [ ] CI/CD pipeline
-- [ ] Infrastructure
-
-### Risk Level
-- [ ] 🟢 Low risk (minor changes, well-tested)
-- [ ] 🟡 Medium risk (moderate changes, some complexity)
-- [ ] 🔴 High risk (major changes, significant impact)
-
-### Rollback Strategy
-<!-- Describe how to rollback if issues arise -->
-
-## 📸 Screenshots/Evidence
-<!-- Add screenshots, logs, or other visual evidence if applicable -->
-
-## 🚀 Deployment Notes
-<!-- Special instructions for deployment -->
-- [ ] Requires database migration
-- [ ] Requires configuration update
-- [ ] Requires service restart
-- [ ] Requires infrastructure changes
-- [ ] Can be deployed independently
-
-## 👥 Reviewers
-<!-- Tag specific reviewers if needed -->
-@mention-reviewers
+### 📚 Additional Notes
+<!-- Any additional information that reviewers should know -->
 
 ---
 
-**By submitting this PR, I confirm that:**
-- [ ] I have read and followed the contributing guidelines
-- [ ] This change has been tested thoroughly
-- [ ] Documentation has been updated appropriately
-- [ ] I understand the impact of this change
+### 👥 Reviewer Guidelines
+- [ ] Code quality and style
+- [ ] Test coverage and quality
+- [ ] Documentation completeness
+- [ ] Security considerations
+- [ ] Performance impact
+- [ ] Breaking changes identified

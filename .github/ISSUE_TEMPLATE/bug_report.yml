@@ -1,0 +1,99 @@
+
+name: 🐛 Bug Report
+description: Report a bug or issue
+title: "[BUG] "
+labels: ["bug", "needs-triage"]
+assignees:
+  - Empire325Marketing
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! Please provide as much detail as possible.
+
+  - type: input
+    id: summary
+    attributes:
+      label: Bug Summary
+      description: A clear and concise description of the bug
+      placeholder: Brief description of the issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Detailed Description
+      description: Provide a detailed description of the bug
+      placeholder: Detailed explanation of what happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What you expected to happen
+      placeholder: Description of expected behavior
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened
+      placeholder: Description of actual behavior
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How severe is this bug?
+      options:
+        - Critical (System down, data loss)
+        - High (Major functionality broken)
+        - Medium (Minor functionality affected)
+        - Low (Cosmetic or minor issue)
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Environment where the bug occurred
+      placeholder: e.g., Production, Staging, Development
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs
+      description: Any relevant log output
+      render: shell
+      placeholder: Paste relevant logs here
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any additional context about the problem
+      placeholder: Screenshots, related issues, etc.

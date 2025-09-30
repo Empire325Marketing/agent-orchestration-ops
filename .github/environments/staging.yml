@@ -1,0 +1,25 @@
+
+name: staging
+url: https://staging.agent-orchestration-ops.com
+protection_rules:
+  required_reviewers: []
+  prevent_self_review: false
+  dismiss_stale_reviews: false
+  require_code_owner_reviews: false
+  required_status_checks:
+    - "CI Status Check"
+  wait_timer: 0
+deployment_branch_policy:
+  protected_branches: false
+  custom_branch_policies: true
+  custom_branches:
+    - main
+    - develop
+variables:
+  ENVIRONMENT: staging
+  LOG_LEVEL: debug
+  MONITORING_ENABLED: true
+secrets:
+  # Staging secrets should be configured in GitHub UI
+  # - DATABASE_URL
+  # - API_KEYS

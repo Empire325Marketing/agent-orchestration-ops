@@ -1,102 +1,207 @@
 
-# Contributing to Agent Orchestration Ops
+# 🤝 Contributing to Agent Orchestration Ops
 
-Thank you for your interest in contributing to the Agent Orchestration Ops project! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to Agent Orchestration Ops! This document provides guidelines and information for contributors.
 
-## 🎯 Table of Contents
+## 📋 Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
 - [Development Workflow](#development-workflow)
-- [Contribution Types](#contribution-types)
-- [Pull Request Process](#pull-request-process)
 - [Coding Standards](#coding-standards)
 - [Testing Guidelines](#testing-guidelines)
 - [Documentation](#documentation)
+- [Pull Request Process](#pull-request-process)
+- [Issue Reporting](#issue-reporting)
 - [Security](#security)
-- [Community](#community)
 
 ## 📜 Code of Conduct
 
-This project adheres to a Code of Conduct that all contributors are expected to follow. Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
+This project adheres to a code of conduct that we expect all contributors to follow:
+
+### Our Pledge
+
+- **Be Respectful**: Treat everyone with respect and kindness
+- **Be Inclusive**: Welcome contributors from all backgrounds
+- **Be Collaborative**: Work together constructively
+- **Be Professional**: Maintain professional communication
+
+### Unacceptable Behavior
+
+- Harassment, discrimination, or offensive comments
+- Personal attacks or trolling
+- Publishing private information without consent
+- Any conduct that would be inappropriate in a professional setting
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-Before contributing, ensure you have:
+- Git
+- Node.js 18+
+- Python 3.11+
+- Docker
+- Go 1.21+ (for some components)
 
-- Git installed and configured
-- GitHub account with 2FA enabled
-- Required development tools for your contribution type
-- Understanding of the project's architecture and goals
+### Development Setup
 
-### Setting Up Development Environment
-
-1. **Fork the Repository**
+1. **Fork and Clone**
    ```bash
-   # Fork the repo on GitHub, then clone your fork
    git clone https://github.com/YOUR_USERNAME/agent-orchestration-ops.git
    cd agent-orchestration-ops
    ```
 
-2. **Add Upstream Remote**
+2. **Install Dependencies**
    ```bash
-   git remote add upstream https://github.com/Empire325Marketing/agent-orchestration-ops.git
+   npm install
+   pip install -r requirements.txt
+   go mod download
    ```
 
-3. **Install Dependencies**
+3. **Setup Environment**
    ```bash
-   # Install project dependencies (adjust based on project type)
-   npm install  # For Node.js projects
-   pip install -r requirements.txt  # For Python projects
-   go mod download  # For Go projects
+   cp .env.example .env
+   # Edit .env with your configuration
    ```
 
-4. **Verify Setup**
+4. **Run Tests**
    ```bash
-   # Run tests to ensure everything is working
-   npm test  # or appropriate test command
+   npm test
+   python -m pytest
+   go test ./...
    ```
 
 ## 🔄 Development Workflow
 
 ### Branch Strategy
 
-We use a feature branch workflow:
+We use GitFlow branching model:
 
 - `main`: Production-ready code
-- `ops-readiness`: Integration branch for operational features
-- `feature/*`: New features and enhancements
-- `bugfix/*`: Bug fixes
-- `hotfix/*`: Critical production fixes
-- `docs/*`: Documentation updates
+- `develop`: Integration branch for features
+- `feature/*`: New features
+- `hotfix/*`: Critical fixes
+- `release/*`: Release preparation
 
-### Creating a Feature Branch
+### Workflow Steps
 
-```bash
-# Ensure you're on the latest main branch
-git checkout main
-git pull upstream main
+1. **Create Feature Branch**
+   ```bash
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/your-feature-name
+   ```
 
-# Create and switch to a new feature branch
-git checkout -b feature/your-feature-name
+2. **Make Changes**
+   - Write code following our standards
+   - Add tests for new functionality
+   - Update documentation as needed
 
-# Push the branch to your fork
-git push -u origin feature/your-feature-name
+3. **Test Locally**
+   ```bash
+   npm run test:all
+   npm run lint
+   npm run security-scan
+   ```
+
+4. **Commit Changes**
+   ```bash
+   git add .
+   git commit -m "feat: add new feature description"
+   ```
+
+5. **Push and Create PR**
+   ```bash
+   git push origin feature/your-feature-name
+   # Create PR through GitHub UI
+   ```
+
+## 📝 Coding Standards
+
+### General Principles
+
+- **Clean Code**: Write self-documenting, readable code
+- **SOLID Principles**: Follow SOLID design principles
+- **DRY**: Don't Repeat Yourself
+- **YAGNI**: You Aren't Gonna Need It
+- **Security First**: Consider security implications
+
+### Language-Specific Standards
+
+#### JavaScript/TypeScript
+```javascript
+// Use meaningful variable names
+const userAuthenticationToken = generateToken();
+
+// Prefer const/let over var
+const config = loadConfiguration();
+let currentUser = null;
+
+// Use async/await over promises
+async function fetchUserData(userId) {
+  try {
+    const response = await api.get(`/users/${userId}`);
+    return response.data;
+  } catch (error) {
+    logger.error('Failed to fetch user data', error);
+    throw error;
+  }
+}
 ```
 
-### Making Changes
+#### Python
+```python
+# Follow PEP 8 style guide
+import logging
+from typing import Optional, Dict, Any
 
-1. **Make your changes** in logical, atomic commits
-2. **Write clear commit messages** following conventional commit format
-3. **Test your changes** thoroughly
-4. **Update documentation** as needed
-5. **Ensure code quality** meets project standards
+logger = logging.getLogger(__name__)
+
+class UserService:
+    """Service for managing user operations."""
+    
+    def __init__(self, config: Dict[str, Any]) -> None:
+        self.config = config
+    
+    async def get_user(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Retrieve user by ID."""
+        try:
+            # Implementation here
+            pass
+        except Exception as e:
+            logger.error(f"Failed to get user {user_id}: {e}")
+            raise
+```
+
+#### Go
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+)
+
+// UserService handles user operations
+type UserService struct {
+    config Config
+}
+
+// GetUser retrieves a user by ID
+func (s *UserService) GetUser(ctx context.Context, userID string) (*User, error) {
+    if userID == "" {
+        return nil, fmt.Errorf("user ID cannot be empty")
+    }
+    
+    // Implementation here
+    return nil, nil
+}
+```
 
 ### Commit Message Format
 
-We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification:
+We use Conventional Commits:
 
 ```
 <type>[optional scope]: <description>
@@ -110,184 +215,17 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
-- `style`: Code style changes (formatting, etc.)
+- `style`: Code style changes
 - `refactor`: Code refactoring
-- `test`: Adding or updating tests
+- `test`: Adding tests
 - `chore`: Maintenance tasks
-- `ci`: CI/CD changes
-- `perf`: Performance improvements
-- `security`: Security improvements
 
 **Examples:**
 ```
-feat(auth): add OAuth2 authentication support
-
-fix(api): resolve timeout issue in user endpoint
-
+feat(auth): add OAuth2 integration
+fix(api): resolve memory leak in user service
 docs(readme): update installation instructions
-
-security(deps): update vulnerable dependencies
 ```
-
-## 🎨 Contribution Types
-
-### Code Contributions
-
-- **New Features**: Implement new functionality
-- **Bug Fixes**: Fix existing issues
-- **Performance Improvements**: Optimize code performance
-- **Security Enhancements**: Improve security posture
-- **Refactoring**: Improve code structure and maintainability
-
-### Documentation Contributions
-
-- **API Documentation**: Document APIs and interfaces
-- **User Guides**: Create or improve user documentation
-- **Developer Guides**: Enhance developer documentation
-- **Code Comments**: Add or improve inline documentation
-- **Examples**: Provide usage examples and tutorials
-
-### Infrastructure Contributions
-
-- **CI/CD Improvements**: Enhance automation pipelines
-- **Monitoring**: Add or improve monitoring and alerting
-- **Security**: Implement security best practices
-- **Performance**: Optimize infrastructure performance
-- **Cost Optimization**: Reduce operational costs
-
-### Testing Contributions
-
-- **Unit Tests**: Add or improve unit test coverage
-- **Integration Tests**: Create integration test suites
-- **End-to-End Tests**: Implement E2E testing
-- **Performance Tests**: Add performance benchmarks
-- **Security Tests**: Implement security testing
-
-## 🔍 Pull Request Process
-
-### Before Submitting
-
-1. **Ensure your branch is up to date**
-   ```bash
-   git checkout main
-   git pull upstream main
-   git checkout feature/your-feature-name
-   git rebase main
-   ```
-
-2. **Run all tests and checks**
-   ```bash
-   npm test  # Run test suite
-   npm run lint  # Run linting
-   npm run security-check  # Run security checks
-   ```
-
-3. **Update documentation** if needed
-
-4. **Squash commits** if necessary for a clean history
-
-### Submitting the Pull Request
-
-1. **Push your changes**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-2. **Create Pull Request** on GitHub with:
-   - Clear, descriptive title
-   - Detailed description of changes
-   - Reference to related issues
-   - Screenshots/demos if applicable
-   - Checklist completion
-
-3. **Pull Request Template**
-   ```markdown
-   ## Description
-   Brief description of changes
-
-   ## Type of Change
-   - [ ] Bug fix
-   - [ ] New feature
-   - [ ] Breaking change
-   - [ ] Documentation update
-
-   ## Testing
-   - [ ] Unit tests pass
-   - [ ] Integration tests pass
-   - [ ] Manual testing completed
-
-   ## Checklist
-   - [ ] Code follows style guidelines
-   - [ ] Self-review completed
-   - [ ] Documentation updated
-   - [ ] No new warnings introduced
-   ```
-
-### Review Process
-
-1. **Automated Checks**: CI/CD pipeline runs automatically
-2. **Code Review**: Team members review your changes
-3. **Feedback**: Address any feedback or requested changes
-4. **Approval**: Obtain required approvals
-5. **Merge**: Maintainers merge approved PRs
-
-### Review Criteria
-
-- **Functionality**: Code works as intended
-- **Quality**: Follows coding standards and best practices
-- **Testing**: Adequate test coverage
-- **Documentation**: Proper documentation updates
-- **Security**: No security vulnerabilities introduced
-- **Performance**: No significant performance degradation
-
-## 📏 Coding Standards
-
-### General Principles
-
-- **Clarity**: Write clear, readable code
-- **Consistency**: Follow established patterns
-- **Simplicity**: Prefer simple solutions
-- **Performance**: Consider performance implications
-- **Security**: Follow security best practices
-- **Maintainability**: Write maintainable code
-
-### Language-Specific Standards
-
-#### Python
-- Follow PEP 8 style guide
-- Use type hints where appropriate
-- Write docstrings for functions and classes
-- Use meaningful variable names
-- Limit line length to 88 characters
-
-#### JavaScript/TypeScript
-- Use ESLint and Prettier for formatting
-- Follow Airbnb style guide
-- Use TypeScript for type safety
-- Write JSDoc comments for functions
-- Use meaningful variable names
-
-#### Go
-- Follow Go formatting standards (gofmt)
-- Use Go conventions for naming
-- Write package documentation
-- Handle errors appropriately
-- Use meaningful variable names
-
-#### Shell Scripts
-- Use shellcheck for validation
-- Include proper error handling
-- Use meaningful variable names
-- Add comments for complex logic
-- Follow POSIX compatibility when possible
-
-### Code Quality Tools
-
-- **Linting**: ESLint, Pylint, golangci-lint
-- **Formatting**: Prettier, Black, gofmt
-- **Security**: Bandit, ESLint security, gosec
-- **Testing**: Jest, pytest, Go testing
-- **Coverage**: Istanbul, coverage.py, Go coverage
 
 ## 🧪 Testing Guidelines
 
@@ -296,164 +234,269 @@ security(deps): update vulnerable dependencies
 - **Unit Tests**: Test individual components
 - **Integration Tests**: Test component interactions
 - **End-to-End Tests**: Test complete workflows
-- **Performance Tests**: Validate performance requirements
-- **Security Tests**: Verify security controls
+- **Security Tests**: Test security vulnerabilities
 
-### Test Requirements
+### Test Structure
 
-- **Coverage**: Maintain >80% test coverage
-- **Quality**: Write meaningful, maintainable tests
-- **Performance**: Tests should run efficiently
-- **Reliability**: Tests should be deterministic
-- **Documentation**: Document complex test scenarios
-
-### Testing Best Practices
-
-1. **Test Structure**: Arrange, Act, Assert pattern
-2. **Test Names**: Descriptive test names
-3. **Test Data**: Use realistic test data
-4. **Mocking**: Mock external dependencies
-5. **Cleanup**: Proper test cleanup
-6. **Isolation**: Tests should be independent
-
-### Running Tests
-
-```bash
-# Run all tests
-npm test
-
-# Run specific test suite
-npm test -- --grep "authentication"
-
-# Run tests with coverage
-npm run test:coverage
-
-# Run performance tests
-npm run test:performance
+```javascript
+describe('UserService', () => {
+  describe('getUser', () => {
+    it('should return user when valid ID provided', async () => {
+      // Arrange
+      const userId = 'valid-user-id';
+      const expectedUser = { id: userId, name: 'John Doe' };
+      
+      // Act
+      const result = await userService.getUser(userId);
+      
+      // Assert
+      expect(result).toEqual(expectedUser);
+    });
+    
+    it('should throw error when invalid ID provided', async () => {
+      // Arrange
+      const invalidUserId = '';
+      
+      // Act & Assert
+      await expect(userService.getUser(invalidUserId))
+        .rejects.toThrow('Invalid user ID');
+    });
+  });
+});
 ```
+
+### Coverage Requirements
+
+- Minimum 80% code coverage
+- 100% coverage for critical paths
+- All public APIs must be tested
 
 ## 📚 Documentation
 
 ### Documentation Types
 
-- **API Documentation**: OpenAPI/Swagger specifications
-- **User Documentation**: Guides and tutorials
-- **Developer Documentation**: Architecture and design docs
-- **Operational Documentation**: Deployment and maintenance guides
-- **Security Documentation**: Security policies and procedures
+1. **Code Comments**: Explain complex logic
+2. **API Documentation**: Document all public APIs
+3. **User Guides**: Help users understand features
+4. **Architecture Docs**: Explain system design
 
 ### Documentation Standards
 
-- **Clarity**: Write clear, concise documentation
-- **Accuracy**: Keep documentation up to date
-- **Completeness**: Cover all necessary topics
-- **Examples**: Provide practical examples
-- **Structure**: Use consistent structure and formatting
+```javascript
+/**
+ * Authenticates a user with the provided credentials
+ * @param {string} username - The user's username
+ * @param {string} password - The user's password
+ * @param {Object} options - Additional authentication options
+ * @param {boolean} options.rememberMe - Whether to remember the user
+ * @returns {Promise<AuthResult>} Authentication result
+ * @throws {AuthenticationError} When credentials are invalid
+ * @example
+ * const result = await authenticateUser('john', 'password123', { rememberMe: true });
+ */
+async function authenticateUser(username, password, options = {}) {
+  // Implementation
+}
+```
 
-### Documentation Tools
+## 🔍 Pull Request Process
 
-- **Markdown**: Primary documentation format
-- **Mermaid**: Diagrams and flowcharts
-- **OpenAPI**: API documentation
-- **JSDoc/Sphinx**: Code documentation
-- **GitHub Pages**: Documentation hosting
+### Before Submitting
+
+- [ ] Code follows style guidelines
+- [ ] Self-review completed
+- [ ] Tests added and passing
+- [ ] Documentation updated
+- [ ] Security considerations addressed
+
+### PR Requirements
+
+1. **Clear Title**: Descriptive title following conventional commits
+2. **Detailed Description**: Explain what and why
+3. **Linked Issues**: Reference related issues
+4. **Test Evidence**: Show tests pass
+5. **Breaking Changes**: Clearly marked
+
+### Review Process
+
+1. **Automated Checks**: CI/CD pipeline must pass
+2. **Code Review**: At least one approval required
+3. **Security Review**: For security-related changes
+4. **Documentation Review**: For user-facing changes
+
+### Merge Requirements
+
+- All CI checks pass
+- Required approvals received
+- No merge conflicts
+- Branch up to date with target
+
+## 🐛 Issue Reporting
+
+### Bug Reports
+
+Use our bug report template and include:
+
+- Clear description of the issue
+- Steps to reproduce
+- Expected vs actual behavior
+- Environment details
+- Relevant logs or screenshots
+
+### Feature Requests
+
+Use our feature request template and include:
+
+- Problem statement
+- Proposed solution
+- Alternative solutions considered
+- Impact assessment
+
+### Issue Labels
+
+- `bug`: Something isn't working
+- `enhancement`: New feature or request
+- `documentation`: Improvements to documentation
+- `good first issue`: Good for newcomers
+- `help wanted`: Extra attention needed
+- `priority/high`: High priority issue
+- `security`: Security-related issue
 
 ## 🔒 Security
 
-### Security Guidelines
+### Security-First Development
 
-- **Never commit secrets** (API keys, passwords, tokens)
-- **Use secure coding practices** (input validation, output encoding)
-- **Follow authentication best practices** (strong passwords, 2FA)
-- **Validate all inputs** (sanitize and validate user inputs)
-- **Use HTTPS everywhere** (secure communication channels)
-- **Keep dependencies updated** (regularly update to latest secure versions)
-
-### Security Review Process
-
-1. **Automated Scanning**: Security tools run on all PRs
-2. **Manual Review**: Security-focused code review
-3. **Dependency Checking**: Vulnerability scanning for dependencies
-4. **Secret Scanning**: Detection of exposed secrets
-5. **Compliance Validation**: Ensure compliance requirements are met
+- Never commit secrets or credentials
+- Use environment variables for configuration
+- Validate all inputs
+- Follow OWASP guidelines
+- Regular dependency updates
 
 ### Reporting Security Issues
 
-Please report security vulnerabilities through our [Security Policy](SECURITY.md). Do not create public issues for security vulnerabilities.
+- **DO NOT** create public issues for security vulnerabilities
+- Email security@agent-orchestration-ops.com
+- Include detailed description and reproduction steps
+- We'll respond within 24 hours
 
-## 👥 Community
+## 🎯 Performance Guidelines
 
-### Communication Channels
+### Performance Considerations
 
-- **GitHub Issues**: Bug reports and feature requests
-- **GitHub Discussions**: General discussions and questions
-- **Pull Requests**: Code review and collaboration
-- **Security**: security@empire325marketing.com
+- Profile code for bottlenecks
+- Optimize database queries
+- Use caching appropriately
+- Monitor memory usage
+- Consider scalability implications
+
+### Performance Testing
+
+```javascript
+// Example performance test
+describe('Performance Tests', () => {
+  it('should handle 1000 concurrent requests', async () => {
+    const startTime = Date.now();
+    const promises = Array(1000).fill().map(() => api.get('/health'));
+    
+    await Promise.all(promises);
+    
+    const duration = Date.now() - startTime;
+    expect(duration).toBeLessThan(5000); // 5 seconds max
+  });
+});
+```
+
+## 🌍 Internationalization
+
+### i18n Guidelines
+
+- Use translation keys, not hardcoded strings
+- Support RTL languages
+- Consider cultural differences
+- Test with different locales
+
+```javascript
+// Good
+const message = t('user.welcome', { name: user.name });
+
+// Bad
+const message = `Welcome, ${user.name}!`;
+```
+
+## 📊 Monitoring & Observability
+
+### Logging Guidelines
+
+```javascript
+// Structured logging
+logger.info('User authenticated', {
+  userId: user.id,
+  timestamp: new Date().toISOString(),
+  userAgent: req.headers['user-agent']
+});
+
+// Error logging
+logger.error('Authentication failed', {
+  error: error.message,
+  stack: error.stack,
+  userId: attemptedUserId
+});
+```
+
+### Metrics
+
+- Track key business metrics
+- Monitor system performance
+- Set up alerting for anomalies
+- Use distributed tracing
+
+## 🚀 Deployment
+
+### Deployment Guidelines
+
+- Use infrastructure as code
+- Implement blue-green deployments
+- Have rollback procedures
+- Monitor deployment health
+
+### Environment Management
+
+- **Development**: Local development
+- **Staging**: Pre-production testing
+- **Production**: Live system
+
+## 🤝 Community
 
 ### Getting Help
 
-- **Documentation**: Check existing documentation first
-- **Search Issues**: Look for existing issues and discussions
-- **Ask Questions**: Create a discussion for questions
-- **Community**: Engage with other contributors
+- **GitHub Discussions**: General questions and discussions
+- **GitHub Issues**: Bug reports and feature requests
+- **Email**: team@agent-orchestration-ops.com
+- **Documentation**: Check our docs first
 
-### Recognition
+### Contributing Beyond Code
 
-We recognize and appreciate all contributions:
+- Report bugs and suggest features
+- Improve documentation
+- Help other users
+- Share your use cases
+- Spread the word
 
-- **Contributors**: Listed in CONTRIBUTORS.md
-- **Releases**: Acknowledged in release notes
-- **Special Recognition**: Outstanding contributions highlighted
-- **Badges**: GitHub achievement badges for contributions
+## 📄 License
 
-## 📋 Checklist for Contributors
+By contributing to this project, you agree that your contributions will be licensed under the same license as the project.
 
-### Before Starting
+## 🙏 Recognition
 
-- [ ] Read and understand the Code of Conduct
-- [ ] Review existing issues and discussions
-- [ ] Set up development environment
-- [ ] Understand the project architecture
-- [ ] Identify the type of contribution
+We appreciate all contributors! Contributors will be:
 
-### During Development
-
-- [ ] Create feature branch from main
-- [ ] Write clear, atomic commits
-- [ ] Follow coding standards
-- [ ] Add appropriate tests
-- [ ] Update documentation
-- [ ] Run all checks locally
-
-### Before Submitting PR
-
-- [ ] Rebase on latest main
-- [ ] Squash commits if necessary
-- [ ] Run full test suite
-- [ ] Update CHANGELOG if applicable
-- [ ] Complete PR template
-- [ ] Self-review changes
-
-### After Submitting PR
-
-- [ ] Respond to feedback promptly
-- [ ] Make requested changes
-- [ ] Keep PR updated with main
-- [ ] Participate in code review discussion
-- [ ] Celebrate when merged! 🎉
-
-## 📞 Contact
-
-For questions about contributing:
-
-- **General Questions**: Create a GitHub Discussion
-- **Bug Reports**: Create a GitHub Issue
-- **Security Issues**: security@empire325marketing.com
-- **Maintainers**: @Empire325Marketing
+- Listed in our CONTRIBUTORS.md file
+- Mentioned in release notes
+- Invited to contributor events
+- Given special contributor badges
 
 ---
 
-Thank you for contributing to Agent Orchestration Ops! Your contributions help make this project better for everyone. 🚀
+Thank you for contributing to Agent Orchestration Ops! Together, we're building something amazing. 🚀
 
-**Last Updated**: September 29, 2025  
-**Next Review**: December 29, 2025
+For questions about contributing, reach out to: contributors@agent-orchestration-ops.com

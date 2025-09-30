@@ -1,83 +1,26 @@
 
-# Production Environment Configuration
-# This file documents the production environment settings
-# Actual environment configuration is managed through GitHub UI
-
 name: production
-description: "Production environment for agent orchestration operations"
-
-# Protection Rules (configured via GitHub UI)
+url: https://agent-orchestration-ops.com
 protection_rules:
   required_reviewers:
-    count: 2
-    dismiss_stale_reviews: true
-    require_code_owner_reviews: true
-    
-  wait_timer:
-    minutes: 0  # No wait timer for production
-    
-  deployment_branch_policy:
-    protected_branches: true
-    custom_branch_policies: false
-
-# Environment Variables (configured via GitHub UI)
-environment_variables:
-  ENVIRONMENT: "production"
-  LOG_LEVEL: "info"
-  MONITORING_ENABLED: "true"
-  SECURITY_SCANNING: "enabled"
-  
-# Secrets (configured via GitHub UI)
-# - PRODUCTION_API_KEY
-# - MONITORING_TOKEN
-# - SECURITY_SCAN_TOKEN
-
-# Deployment Configuration
-deployment:
-  strategy: "blue-green"
-  rollback_enabled: true
-  health_checks: true
-  
-  pre_deployment:
-    - security_scan
-    - integration_tests
-    - performance_tests
-    
-  post_deployment:
-    - health_check
-    - smoke_tests
-    - monitoring_validation
-
-# Monitoring and Alerting
-monitoring:
-  enabled: true
-  dashboards:
-    - operational_metrics
-    - security_metrics
-    - performance_metrics
-    
-  alerts:
-    - deployment_failures
-    - security_incidents
-    - performance_degradation
-
-# Compliance and Governance
-compliance:
-  change_approval_required: true
-  audit_logging: enabled
-  security_review_required: true
-  
-governance:
-  required_approvers:
-    - security_team
-    - operations_team
-  
-  approval_timeout: "24h"
-  emergency_bypass: false
-
-# Notes for Environment Setup:
-# 1. Configure this environment in GitHub repository settings
-# 2. Add required reviewers from security and operations teams
-# 3. Set up environment secrets for production access
-# 4. Configure deployment branch protection rules
-# 5. Enable audit logging for compliance
+    - Empire325Marketing
+  prevent_self_review: true
+  dismiss_stale_reviews: true
+  require_code_owner_reviews: true
+  required_status_checks:
+    - "CI Status Check"
+    - "Security Scanning"
+    - "Code Quality Analysis"
+  wait_timer: 5  # 5 minutes
+deployment_branch_policy:
+  protected_branches: true
+  custom_branch_policies: false
+variables:
+  ENVIRONMENT: production
+  LOG_LEVEL: info
+  MONITORING_ENABLED: true
+secrets:
+  # Production secrets should be configured in GitHub UI
+  # - DATABASE_URL
+  # - API_KEYS
+  # - CERTIFICATES
